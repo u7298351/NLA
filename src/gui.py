@@ -9,7 +9,7 @@ class MainWindow(tk.Tk):
         self.resizable(width=True, height=True)
 
         # create buttons
-        html_harvester = tk.button(self, text = "HTML Harvester", command = self.activate_html_harvester)
+        html_harvester = tk.Button(self, text = "HTML Harvester", command = self.activate_html_harvester)
 
         # create headers
         scraper_header = tk.Label(self, text = "Scraper Tools", font=("Arial", 12, "bold"))

@@ -18,10 +18,22 @@ def scraper_main():
     driver = start_chrome()
     #  define actions using subfunctions and selenium here
 
+    driver = get_to_library(driver) # get to the library page
+
 
 
     driver.close()
 
-def get_to_library():
-    
+def get_to_library(driver):
+    collections_path = ""
+    collections_box = driver.find_element('css selector', collections_path)
+    collections_box.click()
+    sleep(0.5)
+
+    anbd_path = ""
+    anbd_box = driver.find_element('css selector', anbd_path)
+    anbd_box.click()
+    sleep(0.5)
+
+    return driver
 

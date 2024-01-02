@@ -37,3 +37,11 @@ def get_to_library(driver):
 
     return driver
 
+
+def get_to_datastore_for_copy(driver):
+    datastore_path = ""
+    datastore_box = driver.find_element('css selector', datastore_path)
+    datastore_box.click()
+    sleep(0.5)
+
+    return driver

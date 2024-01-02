@@ -1,0 +1,48 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from time import sleep
+
+def start_chrome():
+    chrome_options = Options()
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--headless")
+
+    driver = webdriver.Chrome(options=chrome_options)
+
+    url = 'https://rego.act.gov.au/regosoawicket/public/reg/FindRegistrationPage?0'
+    driver.get(url)
+    return driver
+
+def get_comparison_vin(plate_number):
+    driver = start_chrome()
+    path = "#plateNumber"
+    rego_box = driver.find_element('css selector', path)
+    rego_box.clear()
+    rego_box.send_keys(plate_number)
+    sleep (0.5)
+
+    path_2 = "#privacyCheck"
+    check_box = driver.find_element('css selector', path_2)
+    check_box.click()
+    sleep(0.5)
+
+    path_3 = "#id3"
+    next_box = driver.find_element('css selector', path_3)
+    next_box.click()
+    sleep(0.5)
+
+    path_4 = "#id1 > div > div > div > div > div > table > tbody > tr > td:nth-child(1) > a > span"
+    car_link = driver.find_element('css selector', path_4)
+    car_link.click()
+    sleep(0.5)
+
+    path_5 = "#vinNumber"
+    vin = driver.find_element('css selector', path_5)
+    actual_vin = vin.get_attribute("value")
+    driver.close()
+    return actual_vin
+
+def verify_details(plate_number, actual_vin):
+    test_vin = get_comparison_vin(plate_number)
+    return actual_vin == test_vin

@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import Select
 from time import sleep
 
 def start_chrome():
@@ -19,6 +20,16 @@ def scraper_main():
     #  define actions using subfunctions and selenium here
 
     driver = get_to_library(driver) # get to the library page
+
+    driver = new_contributor(driver)
+
+    driver = connection_settings(driver)
+
+    driver = processing_steps(driver)
+
+    driver = test_harvest(driver)
+
+    driver = logs(driver)
 
 
 

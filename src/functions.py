@@ -14,28 +14,22 @@ def start_chrome():
     # is working fine to run in headless mode (without opening browser)
 
     driver = webdriver.Chrome(options=chrome_options)
-    url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
-    driver.get(url)
     return driver
 
 def scraper_main():
     driver = start_chrome()
     #  define actions using subfunctions and selenium here
+    driver = collect_Input_GUI_And_CSVDetails(driver)
 
-    driver = get_to_ANBDlibrary(driver) # get to the library page
+    for (i in range(0, 10)): # loop through the number of contributors
+    url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
+    driver.get(url)
+    driver = copyContributorVariables(driver,i)
 
-    driver = copyContributorVariables(driver)
-
-    driver = create_new_contributor(driver)
+    driver = create_new_contributor(driver,i)
 
     driver.close()
-
-def get_to_ANBDlibrary(driver):
-    anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
-    anbd_box = driver.find_element('css selector', anbd_path)
-    anbd_box.click()
-    sleep(0.5)
-
+    #end for loop
     return driver
 
 
@@ -43,10 +37,15 @@ def copyContributorVariables(driver):
     # need to copy the variables from the contributor page
     # need to paste the variables into the new contributor page
     # Extract the value from the first textbox
-
+    
+    anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
+    anbd_box = driver.find_element('css selector', anbd_path)
+    anbd_box.click()
+    sleep(0.5)
 
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
     editContributorvalue = editContributor.click("value")
+    sleep(0.5)
 
     contributorName = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]")
     contributorNamevalue = contributorName.get_attribute("value")
@@ -62,6 +61,7 @@ def copyContributorVariables(driver):
     
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
+    
 # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
@@ -78,6 +78,21 @@ def copyContributorVariables(driver):
 
 
 def create_new_contributor(driver):
+    driver = openANBSCollection(driver)
+    driver = openANBDCollection(driver)
+    driver = createNewContributor(driver)
+    driver = inputContributorDetails
+    driver = save(driver)
+    driver = inputConnectionDetails
+    driver = save(driver)
+    driver = inputDataStoreSettings
+    driver = save(driver)
+    driver = editProcessingSteps(driver)
+    driver = save(driver)
+    driver = runTestHarvest(driver)
+    driver = downloadLogs(driver)
+    driver 
+
     anbs_path = "#content > table > tbody > tr:nth-child(14) > td:nth-child(1) > a"
     anbs_box = driver.find_element('css selector', anbs_path)
     anbs_box.click()
@@ -177,6 +192,8 @@ def create_new_contributor(driver):
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.Enter)
+    sleep(0.5)
+
     #edit DataStore Settings
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
@@ -191,7 +208,9 @@ def create_new_contributor(driver):
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
+    input_element.send_keys(Keys.Enter) #not sure if it is meant to be an enter here, or if it is the correct number
+    sleep(0.5)
+
     #insert NUC 
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
@@ -214,6 +233,8 @@ def create_new_contributor(driver):
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.ENTER)
+    sleep(0.5)
+
     # Edit Processing Steps
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
@@ -227,6 +248,8 @@ def create_new_contributor(driver):
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
+    sleep(0.5)
+
     # edit test steps
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
@@ -248,6 +271,7 @@ def create_new_contributor(driver):
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
+    sleep(0.5)
     
     
     editNucStep = "#ProcessingStepsForm > table > tbody > tr:nth-child(11) > td:nth-child(8) > ul > li:nth-child(1) > a"

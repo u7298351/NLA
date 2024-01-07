@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 
+# pyinstaller app.py--onefile --name harvestAutomater
+
 class MainWindow(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

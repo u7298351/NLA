@@ -20,7 +20,7 @@ scraper_main(max_iterations)
 #need seperate code for running put in active contributor section
 #Idea - could add logic to check for unique XSLT sheets from the standards - and spit those out into another csv list to be consulted with later - would be helpful with universities
 #need to add logic for file storage in folders
-
+#need code to deal with contributor type dropdown - variable and insert.
 def scraper_main(max_iterations):
     driver = start_chrome()
     driver = process_csv_data(driver, max_iterations)
@@ -56,6 +56,7 @@ def process_csv_data(driver, max_iterations):
             driver = create_new_contributor(driver, data)
 
     return driver
+
 
 def collect_Input_GUI_And_CSVDetails(driver, data):
     url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
@@ -118,6 +119,7 @@ def contributorVariables(driver):
 
     return driver
 
+
 def contributorDetailsVariables(driver):
     base_selector = "#contributorform > fieldset > table > tbody > tr:nth-child({}) > td:nth-child({}) > input"
     contributors = []
@@ -150,13 +152,18 @@ def contributorDetailsVariables(driver):
 def connectionSettingsVariables(driver):
     return driver
 #BELOW FUNCTION NEEDS COMPLETING
+
 def notesVariables(driver):
     return driver
 
+
 def datastoreSettingsVariables(driver):
     return driver
+
+
 def logsDownloadOldSheetForComparison(driver):
     return driver
+
 
 def create_new_contributor(driver, data):
 
@@ -172,6 +179,7 @@ def create_new_contributor(driver, data):
     driver = downloadLogs(driver)
     return driver
 
+
 def createNewContributorBegin(driver):
 
     anbs_path = "#content > table > tbody > tr:nth-child(14) > td:nth-child(1) > a"
@@ -185,6 +193,7 @@ def createNewContributorBegin(driver):
     sleep(0.5)
 
     return driver
+
 
 def inputContributorDetails(driver):
     name_insert = "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]"
@@ -203,6 +212,7 @@ def inputContributorDetails(driver):
     driver.send_keys(Keys.ENTER)
     driver.send_keys(Keys.TAB)
     return driver 
+
 
 def addContributorContactDetails(driver, contributors):
     for i, contributor in enumerate(contributors, start=4):
@@ -239,6 +249,7 @@ def addContributorContactDetails(driver, contributors):
     sleep(0.5)
 
     return driver
+
 
 
 def inputConnectionDetails(driver):
@@ -284,6 +295,7 @@ def inputConnectionDetails(driver):
     sleep(0.5)
     return driver
 
+
 def inputDataStoreSettings(driver):
 
     gotoDataStore = "#subnav > li:nth-child(4) > a"
@@ -312,6 +324,7 @@ def inputDataStoreSettings(driver):
 
 
     #MAY NEED TO BE REALLY CAREFUL HERE AS NUMBER OF PROCESSING STEPS WILL CHANGE DEPENDING ON PROCESSING PROFILE
+
 
 def editProcessingSteps(driver, platformVariable, NUCVariable):
     goToProcessing = "#subnav > li:nth-child(7)"            #this looked different - might not work
@@ -367,6 +380,7 @@ def clickProcessingStepButton(driver, platformVariable):
 
     return driver
 
+
 def runTestHarvest(driver):
     performTestHarvest = "#subnav > li:nth-child(5) > a"
     performTestHarvestbox = driver.find_element('css selector', performTestHarvest)
@@ -386,6 +400,7 @@ def runTestHarvest(driver):
     sleep(0.5)
 
     return driver
+
 
 def downloadLogs(driver):
     logs = "#subnav > li.on > a"

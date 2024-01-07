@@ -3,8 +3,21 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-
+import csv
 from time import sleep
+
+
+# Example usage
+max_iterations = 10  # Set this to control the number of iterations
+scraper_main(max_iterations)
+
+
+
+def scraper_main(max_iterations):
+    driver = start_chrome()
+    driver = collect_Input_GUI_And_CSVDetails(driver, max_iterations)
+    driver.close()
+
 
 def start_chrome():
     chrome_options = Options()
@@ -16,20 +29,33 @@ def start_chrome():
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
-def scraper_main():
-    driver = start_chrome()
-    #  define actions using subfunctions and selenium here
-    driver = collect_Input_GUI_And_CSVDetails(driver)
 
-    for (i in range(0, 10)): # loop through the number of contributors
-    url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
-    driver.get(url)
-    driver = copyContributorVariables(driver,i)
+def collect_Input_GUI_And_CSVDetails(driver, numberOfIterations):
+   def collect_Input_GUI_And_CSVDetails(driver, max_iterations):
+    with open('your_file.csv', 'r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)  # Skip the header row if there is one
 
-    driver = create_new_contributor(driver,i)
+        for i, row in enumerate(csv_reader):
+            if i >= max_iterations:
+                break  # Stop the loop if max_iterations is reached
 
-    driver.close()
-    #end for loop
+            data = row[0]  # Extract data from the first column
+
+            url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
+            driver.get(url)
+
+            try:
+                link_xpath = f"//a[contains(text(), '{data}')]"
+                link = driver.find_element(By.XPATH, link_xpath)
+                link.click()
+                sleep(1)  # Wait for page to load after click
+            except Exception as e:
+                print(f"Error finding link for {data}: {e}")
+
+            driver = copyContributorVariables(driver, data)
+            driver = create_new_contributor(driver, data)
+    
     return driver
 
 
@@ -37,11 +63,6 @@ def copyContributorVariables(driver):
     # need to copy the variables from the contributor page
     # need to paste the variables into the new contributor page
     # Extract the value from the first textbox
-    
-    anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
-    anbd_box = driver.find_element('css selector', anbd_path)
-    anbd_box.click()
-    sleep(0.5)
 
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
     editContributorvalue = editContributor.click("value")
@@ -61,6 +82,8 @@ def copyContributorVariables(driver):
     
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
+
+    
     
 # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
@@ -141,42 +164,62 @@ def create_new_contributor(driver):
     setConnectionBox.click()
     sleep(0.5)
 
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    urlInsertBox = driver.send_keys("URL VARIABLE")
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.ENTER)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    
+    urlPath = "#settingsform > fieldset > dl > dd:nth-child(6) > input"
+    urlPathBox = driver.find_element('css selector', urlPath)
+    urlPathBox = driver.send_keys("URL VARIABLE")
 
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
-    input_element.send_keys(Keys.TAB)
+
+    saveConnectionSettings = "#settingsform > ul > li:nth-child(3) > a"
+    saveConnectionSettingsBox = driver.find_element('css selector', saveConnectionSettings)
+    saveConnectionSettingsBox.click()
+    sleep(0.5)
+
+#save connection settings box
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.ENTER)
+
+
+    setInsert = "#settingsform > fieldset > dl > dd:nth-child(8) > input[type=text]"
+    setInsertBox = driver.find_element('css selector', setInsert)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
+    # input_element.send_keys(Keys.TAB)
     urlInsertBox = driver.send_keys("SET VARIABLE")
     input_element.send_keys(Keys.TAB)
-    urlInsertBox = driver.send_keys("SET VARIABLE")
-    urlInsertBox = driver.send_keys("marcXML") #this needs correcting!
+    input_element.send_keys(Keys.BACKSPACE)
+    input_element.send_keys(Keys.BACKSPACE)
+    input_element.send_keys(Keys.BACKSPACE)
+    input_element.send_keys(Keys.BACKSPACE)
+    input_element.send_keys(Keys.BACKSPACE)
+    input_element.send_keys(Keys.BACKSPACE)
+    input_element.send_keys("marc21")
+    
+    # urlInsertBox = driver.send_keys("SET VARIABLE")
+    # urlInsertBox = driver.send_keys("marcXML") #this needs correcting!
     input_element.send_keys(Keys.TAB)
     urlInsertBox = driver.send_keys("500")
     input_element.send_keys(Keys.TAB)
-    urlInsertBox = driver.send_keys("500")
     #below will need logic for the SirsiDynix Platforms
-    urlInsertBox = driver.send_keys("Platform VARIABLE")
-
+    input_element = driver.send_keys("Platform VARIABLE")
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)
     input_element.send_keys(Keys.TAB)

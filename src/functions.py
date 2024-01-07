@@ -14,15 +14,17 @@ scraper_main(max_iterations)
 #need to add logic for - platform sirsi
 #need to add logic for - variable storing
 #need to add logic for - description insertion - may not matter
-#need to add logic for contributor details insertion
+#need to add logic for - notes
 #need to fix logic for finding the correct test processing step
+#building on prior one - need code to handle specific libero logic for each harvesting profile
 #need seperate code for running put in active contributor section
+#Idea - could add logic to check for unique XSLT sheets from the standards - and spit those out into another csv list to be consulted with later - would be helpful with universities
+#need to add logic for file storage in folders
 
 def scraper_main(max_iterations):
     driver = start_chrome()
     driver = process_csv_data(driver, max_iterations)
     driver.close()
-
 
 def start_chrome():
     chrome_options = Options()
@@ -33,6 +35,7 @@ def start_chrome():
 
     driver = webdriver.Chrome(options=chrome_options)
     return driver
+
 
 
 def process_csv_data(driver, max_iterations):
@@ -46,7 +49,10 @@ def process_csv_data(driver, max_iterations):
 
             data = row[0]
             driver = collect_Input_GUI_And_CSVDetails(driver, data)
-            driver = copyContributorVariables(driver)
+
+            driver, contributors = contributorDetailsVariables(driver)
+            driver = addContributorContactDetails(driver, contributors)
+
             driver = create_new_contributor(driver, data)
 
     return driver
@@ -76,7 +82,15 @@ def copyContributorVariables(driver):
     # need to copy the variables from the contributor page
     # need to paste the variables into the new contributor page
     # Extract the value from the first textbox
+    driver = contributorVariables(driver)
+    driver = contributorDetailsVariables(driver)
+    driver = notesVariables(driver)
+    driver = connectionSettingsVariables(driver)
+    driver = datastoreSettingsVariables(driver)
+    driver = logsDownloadOldSheetForComparison(driver)
 
+
+def contributorVariables(driver):
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
     editContributorvalue = editContributor.click("value")
     sleep(0.5)
@@ -90,25 +104,58 @@ def copyContributorVariables(driver):
     
     
     platform = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
-    platformvalue = platform.get_attribute("value")
+    platformvalue = platform.get_attribute("value") # need to check if this is working
 
-    
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
 
     
-    
 # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
-    driver.send_keys(Keys.TAB)
-    driver.send_keys("s")
-    driver.send_keys(Keys.TAB)
 
-    contactName = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > table > tbody > tr:nth-child(4) > td:nth-child(1) > input")
-    contactNamevalue = contactName.get_attribute("value")
-    contactEmail = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > table > tbody > tr:nth-child(4) > td:nth-child(3) > input")
-    contactEmailvalue = contactEmail.get_attribute("value")
+
+
+    return driver
+
+def contributorDetailsVariables(driver):
+    base_selector = "#contributorform > fieldset > table > tbody > tr:nth-child({}) > td:nth-child({}) > input"
+    contributors = []
+    index = 4
+
+    while True:
+        try:
+            name_selector = base_selector.format(index, 1)
+            job_title_selector = base_selector.format(index, 2)
+            email_selector = base_selector.format(index, 3)
+
+            name_field = driver.find_element(By.CSS_SELECTOR, name_selector)
+            job_title_field = driver.find_element(By.CSS_SELECTOR, job_title_selector)
+            email_field = driver.find_element(By.CSS_SELECTOR, email_selector)
+
+            contributors.append({
+                'name': name_field.get_attribute("value"),
+                'job_title': job_title_field.get_attribute("value"),
+                'email': email_field.get_attribute("value")
+            })
+
+            index += 1
+        except Exception as e:
+            # No more contributors
+            break
+
+    return driver, contributors
+
+
+def connectionSettingsVariables(driver):
+    return driver
+#BELOW FUNCTION NEEDS COMPLETING
+def notesVariables(driver):
+    return driver
+
+def datastoreSettingsVariables(driver):
+    return driver
+def logsDownloadOldSheetForComparison(driver):
     return driver
 
 def create_new_contributor(driver, data):
@@ -116,10 +163,10 @@ def create_new_contributor(driver, data):
     # need to break out the data variable array for the individual variable names to call and insert them where relevant for the following functions
 
     driver = createNewContributorBegin(driver)
-    driver = inputContributorDetails
+    driver = inputContributorDetails(driver)
     driver = addContributorContactDetails(driver)
-    driver = inputConnectionDetails
-    driver = inputDataStoreSettings
+    driver = inputConnectionDetails(driver)
+    driver = inputDataStoreSettings(driver)
     driver = editProcessingSteps(driver)
     driver = runTestHarvest(driver)
     driver = downloadLogs(driver)
@@ -157,33 +204,42 @@ def inputContributorDetails(driver):
     driver.send_keys(Keys.TAB)
     return driver 
 
-def addContributorContactDetails(driver):
-    #need an if to check if there are contributors
-    driver.send_keys("Contributor Name VARIABLE INSERTION" )
-    driver.send_keys(Keys.TAB)
-    driver.send_keys("Job title VARIABLE INSERTION" )
-    driver.send_keys(Keys.TAB)
-    driver.send_keys("Email VARIABLE INSERTION" )
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    #need logic here to handle T or B typing based on box
-    #need an if to check if there are morecontributors
-    driver.send_keys("Contributor Name VARIABLE INSERTION" )
-    #need an if to check if there are contributors
-    
+def addContributorContactDetails(driver, contributors):
+    for i, contributor in enumerate(contributors, start=4):
+        # Construct the selector for each field based on the index
+        name_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(1) > input"
+        job_title_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(2) > input"
+        email_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(3) > input"
 
+        # Find and populate the name field
+        name_field = driver.find_element(By.CSS_SELECTOR, name_selector)
+        name_field.clear()
+        name_field.send_keys(contributor['name'])
+
+        # Find and populate the job title field
+        job_title_field = driver.find_element(By.CSS_SELECTOR, job_title_selector)
+        job_title_field.clear()
+        job_title_field.send_keys(contributor['job_title'])
+
+        # Find and populate the email field
+        email_field = driver.find_element(By.CSS_SELECTOR, email_selector)
+        email_field.clear()
+        email_field.send_keys(contributor['email'])
+
+        # Logic to handle T or B typing based on box
+        # You need to add this logic based on your specific requirements
+
+        # Logic for handling if there are more contributors (like a "Add More" button)
+        # This part of the code needs to be implemented according to the specific functionality of your webpage
+
+    # Click the submit/connection button after adding all contributors
     setConnectionPath = "#mainsubmit"
-    setConnectionBox = driver.find_element('css selector', setConnectionPath)
+    setConnectionBox = driver.find_element(By.CSS_SELECTOR, setConnectionPath)
     setConnectionBox.click()
     sleep(0.5)
-    
 
-
-    
     return driver
+
 
 def inputConnectionDetails(driver):
     urlPath = "#settingsform > fieldset > dl > dd:nth-child(6) > input"
@@ -257,33 +313,14 @@ def inputDataStoreSettings(driver):
 
     #MAY NEED TO BE REALLY CAREFUL HERE AS NUMBER OF PROCESSING STEPS WILL CHANGE DEPENDING ON PROCESSING PROFILE
 
-def editProcessingSteps(driver):
+def editProcessingSteps(driver, platformVariable, NUCVariable):
     goToProcessing = "#subnav > li:nth-child(7)"            #this looked different - might not work
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
     goToProcessingBox.click()
     
 
     # edit test steps - I have not changed this yet - need to look at it later - def wrong
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
+    driver = clickProcessingStepButton(driver, platformVariable)
     sleep(0.5)
     
     
@@ -311,6 +348,21 @@ def editProcessingSteps(driver):
     saveSteps = "#ProcessingStepsForm > ul:nth-child(5) > li:nth-child(2) > input"
     saveStepsbox = driver.find_element('css selector', saveSteps)
     saveStepsbox.click()
+    sleep(0.5)
+
+    return driver
+
+
+def clickProcessingStepButton(driver, platformVariable):
+    # Determine the correct row index based on platformVariable
+    row_index = 9 if platformVariable.lower() == "libero" else 8
+
+    # Construct the selector for the button
+    button_selector = f"#ProcessingStepsForm > table > tbody > tr:nth-child({row_index}) > td:nth-child(8) > ul > li:nth-child(1) > a"
+
+    # Find the button and click it
+    button = driver.find_element(By.CSS_SELECTOR, button_selector)
+    button.click()
     sleep(0.5)
 
     return driver

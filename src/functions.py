@@ -19,8 +19,13 @@ scraper_main(max_iterations)
 #building on prior one - need code to handle specific libero logic for each harvesting profile
 #need seperate code for running put in active contributor section
 #Idea - could add logic to check for unique XSLT sheets from the standards - and spit those out into another csv list to be consulted with later - would be helpful with universities
-#need to add logic for file storage in folders
+#need to add logic for file storage in folders- when we save and earlier folder creation
+#need code to check if it is custom setup
+#need marcedit file conversion
+#need gui for general harvester creation
 #need code to deal with contributor type dropdown - variable and insert.
+
+
 def scraper_main(max_iterations):
     driver = start_chrome()
     driver = process_csv_data(driver, max_iterations)
@@ -35,7 +40,6 @@ def start_chrome():
 
     driver = webdriver.Chrome(options=chrome_options)
     return driver
-
 
 
 def process_csv_data(driver, max_iterations):
@@ -105,7 +109,14 @@ def contributorVariables(driver):
     
     
     platform = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
-    platformvalue = platform.get_attribute("value") # need to check if this is working
+    platformValue = platform.get_attribute("value")  # Retrieve the current value of the element
+
+# Convert the platformValue to lowercase for case-insensitive comparison
+    platformValueLower = platformValue.lower()
+
+# Check if the lowercase platformValue is one of the specified strings
+    if platformValueLower in ("symphony", "sirsidynix", "aurora"):
+        platformValue = "SirsiDynix"
 
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
@@ -151,8 +162,8 @@ def contributorDetailsVariables(driver):
 
 def connectionSettingsVariables(driver):
     return driver
-#BELOW FUNCTION NEEDS COMPLETING
 
+#BELOW FUNCTION NEEDS COMPLETING
 def notesVariables(driver):
     return driver
 
@@ -365,6 +376,11 @@ def editProcessingSteps(driver, platformVariable, NUCVariable):
 
     return driver
 
+def checkIfCustom(driver):
+    return driver
+
+def enactCustomStyleSheetNotes(driver):
+    return driver
 
 def clickProcessingStepButton(driver, platformVariable):
     # Determine the correct row index based on platformVariable

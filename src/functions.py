@@ -6,23 +6,26 @@ from selenium.webdriver.common.by import By
 import csv
 import re
 import os
+import subprocess
 from time import sleep
 
 
 # Example usage
 max_iterations = 10  # Set this to control the number of iterations
 scraper_main(max_iterations)
-
+#need to add function inputs
 #need to check logic for - platform sirsi
 #need to check logic for - variable storing
-#need to add logic for - description insertion - may not matter
-#need to add logic for - notes
-#need to fix logic for finding the correct test processing step
+#need to check logic for - description insertion - may not matter
+#need to check logic for - notes - we can add it as we see it
+#need to check logic for finding the correct test processing step
 #building on prior one - need code to handle specific libero logic for each harvesting profile
+
 #need seperate code for running put in active contributor section
 #Idea - could add logic to check for unique XSLT sheets from the standards - and spit those out into another csv list to be consulted with later - would be helpful with universities
-#need to add logic for file storage in folders- when we save and earlier folder creation
 #need code to check if it is custom setup
+
+
 #need marcedit file conversion
 #need gui for general harvester creation
 #need code to deal with contributor type dropdown - variable and insert.
@@ -544,8 +547,38 @@ def add_boolean_to_csv(array_data, boolean_variable, file_path):
 boolean_variable = True  # Set this based on your condition
 add_boolean_to_csv(array_data, boolean_variable, csv_file_path)
 
+def convert_marcxml_to_marc21(source_file, destination_file):
+    command = f"%MARCEDIT%/cmarcedit.exe -s \"{source_file}\" -d \"{destination_file}\" -xmlmarc -utf8"
+    subprocess.run(command, shell=True)
+
+def convert_marc_to_mrk(source_file, destination_file):
+    command = f"%MARCEDIT%/cmarcedit.exe -s \"{source_file}\" -d \"{destination_file}\" -break -utf8"
+    subprocess.run(command, shell=True)
+
+# Example usage
+contributorNamevalue = "MYNUC"  # Replace with actual value
+folder_path = f"C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS\\ANBS {contributorNamevalue}"
+
+# Assuming the source file name and format
+source_marcxml_file = os.path.join(folder_path, "source_file.xml")
+intermediate_marc21_file = os.path.join(folder_path, "intermediate_file.mrc")
+final_mrk_file = os.path.join(folder_path, "final_file.mrk")
+
+# Convert MARCXML to MARC21
+convert_marcxml_to_marc21(source_marcxml_file, intermediate_marc21_file)
+
+# Convert MARC21 to MRK
+convert_marc_to_mrk(intermediate_marc21_file, final_mrk_file)
 
 
+#more exammple apparently
+marcedit_path = os.getenv('MARCEDIT')
+
+# Use `marcedit_path` in your subprocess calls
+# Example:
+# subprocess.run(f"{marcedit_path} -s input_file -d output_file -task ...", shell=True)
 
 
-
+# if enviornment path is locked 
+# downloadLogsmarcedit_path = "C:\\path\\to\\MarcEdit\\cmarcedit.exe"
+# # Use `marcedit_path` in your script

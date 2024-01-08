@@ -4,6 +4,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import csv
+import re
+import os
 from time import sleep
 
 
@@ -27,7 +29,8 @@ scraper_main(max_iterations)
 
 
 def scraper_main(max_iterations):
-    driver = start_chrome()
+    download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + contributorNamevalue)
+    driver = start_chrome_with_download_path(download_folder)
     driver = process_csv_data(driver, max_iterations)
     driver.close()
 
@@ -41,6 +44,17 @@ def start_chrome():
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
+def start_chrome_with_download_path(download_path):
+    chrome_options = Options()
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--disable-extensions")
+
+    # Set the default download directory to `download_path`
+    prefs = {"download.default_directory": download_path}
+    chrome_options.add_experimental_option("prefs", prefs)
+
+    driver = webdriver.Chrome(options=chrome_options)
+    return driver
 
 def process_csv_data(driver, max_iterations):
     with open('your_file.csv', 'r') as file:
@@ -50,6 +64,7 @@ def process_csv_data(driver, max_iterations):
         for i, row in enumerate(csv_reader):
             if i >= max_iterations:
                 break
+
 
             data = row[0]
             driver = collect_Input_GUI_And_CSVDetails(driver, data)
@@ -221,6 +236,7 @@ def logsDownloadOldSheetForComparison(driver):
     openMostRecentHarvestbox.click()
     sleep(0.5)
    
+    create_download_folder("ANBD", contributorNamevalue)
 
     downloadAll2 = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
     downloadAll2Box = driver.find_element('css selector', downloadAll2)
@@ -484,10 +500,10 @@ def downloadLogs(driver):
 
 
     openMostRecentHarvest2 = "#content > table > tbody > tr:nth-child(2) > td:nth-child(1) > a"
-    openMostRecentHarvestbox2 = driver.find_element('css selector', openMostRecentHarvest2)
+    openMostRecentHarvestbox2 = driver.find_element('css selector', oxpenMostRecentHarvest2)
     openMostRecentHarvestbox2.click()
     sleep(0.5)
-    
+    create_download_folder("ANBS", contributorNamevalue)
     downloadAll = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
     downloadAllbox = driver.find_element('css selector', downloadAll)
     downloadAllbox.click()
@@ -496,6 +512,40 @@ def downloadLogs(driver):
     return driver
 
 
+def create_download_folder(db, contributorNamevalue):
+    folder_name = db + contributorNamevalue
+    folder_path = os.path.join("C:\Users\lachlan\Downloads\HarvesterANBDtoANBS", folder_name)  # Specify the parent directory
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    return folder_path
 
 
-    
+def output_csv(array_data, file_path):
+    with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        for row in array_data:
+            writer.writerow(row)
+
+# Example usage for outputting a CSV
+array_data = [["Header1", "Header2"], ["Row1Data1", "Row1Data2"]]
+csv_file_path = os.path.join(download_folder, "output.csv")
+output_csv(array_data, csv_file_path)
+
+def add_boolean_to_csv(array_data, boolean_variable, file_path):
+    modified_data = []
+    for row in array_data:
+        new_row = row.copy()  # Copy the original row
+        new_row.append("True" if boolean_variable else "False")  # Add "True" or "False"
+        modified_data.append(new_row)
+
+    output_csv(modified_data, file_path)
+
+# Example usage
+boolean_variable = True  # Set this based on your condition
+add_boolean_to_csv(array_data, boolean_variable, csv_file_path)
+
+
+
+
+
+

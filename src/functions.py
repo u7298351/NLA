@@ -11,8 +11,8 @@ from time import sleep
 max_iterations = 10  # Set this to control the number of iterations
 scraper_main(max_iterations)
 
-#need to add logic for - platform sirsi
-#need to add logic for - variable storing
+#need to check logic for - platform sirsi
+#need to check logic for - variable storing
 #need to add logic for - description insertion - may not matter
 #need to add logic for - notes
 #need to fix logic for finding the correct test processing step
@@ -79,7 +79,6 @@ def collect_Input_GUI_And_CSVDetails(driver, data):
         sleep(0.5)  # Wait for page to load after click
     except Exception as e:
         print(f"Error finding link for {data}: {e}")
-
     return driver
 
 
@@ -89,21 +88,21 @@ def copyContributorVariables(driver):
     # Extract the value from the first textbox
     driver = contributorVariables(driver)
     driver = contributorDetailsVariables(driver)
-    driver = notesVariables(driver)
     driver = connectionSettingsVariables(driver)
-    driver = datastoreSettingsVariables(driver)
+    driver = runTestHarvest(driver)
     driver = logsDownloadOldSheetForComparison(driver)
 
 
 def contributorVariables(driver):
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
-    editContributorvalue = editContributor.click("value")
+    editContributorvalue = editContributor.click()
     sleep(0.5)
 
     contributorName = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]")
     contributorNamevalue = contributorName.get_attribute("value")
     
-
+    contributorNUC = extract_contributor_NUC(contributorNamevalue)
+    
     description = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(4) > input[type=text]")
     descriptionvalue = description.get_attribute("value")
     
@@ -121,15 +120,26 @@ def contributorVariables(driver):
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
 
+    workEffort=driver.find_element("#contributorform > fieldset > dl > dd:nth-child(14) > select") #contributorform > fieldset > dl > dd:nth-child(14) > select > option:nth-child(2) I may need to use this instead
+    workEffortvalue = workEffort.get_attribute("value")
     
 # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
 
-
-
     return driver
 
+def extract_contributor_NUC(contributorNamevalue):
+    # Regular expression to find characters between square brackets
+    match = re.search(r'\[(.*?)\]', contributorNamevalue)
+    if match:
+        # Extract the value between brackets
+        contributorNUCvalue = match.group(1)
+    else:
+        # Handle cases where no brackets are found
+        contributorNUCvalue = ""  # or some default value
+
+    return contributorNUCvalue
 
 def contributorDetailsVariables(driver):
     base_selector = "#contributorform > fieldset > table > tbody > tr:nth-child({}) > td:nth-child({}) > input"
@@ -161,18 +171,62 @@ def contributorDetailsVariables(driver):
 
 
 def connectionSettingsVariables(driver):
+    
+    viewConnectionSettings = driver.find_element(By.CSS_SELECTOR, "#subnav > li:nth-child(3) > a")
+    viewConnectionSettingsBox = viewConnectionSettings.click()
+    sleep(0.5)
+    
+    editConnectionSettingsAgain = driver.find_element(By.CSS_SELECTOR, "#content > ul > li > a")
+    editConnectionSettingsAgainBox = editConnectionSettingsAgain.click()
+    sleep(0.5)
+
+    step2ConnectionSettings = driver.find_element(By.CSS_SELECTOR, "#step1 > ul > li:nth-child(2) > a")
+    step2ConnectionSettingsBox = step2ConnectionSettings.click()
+    
+    urlTaker = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(4) > input")
+    urlTakervalue = urlTaker.get_attribute("value")
+
+    #settingsform > fieldset > dl > dd:nth-child(4) > input
+    step3ConnectionSettings = driver.find_element(By.css_selector, "#settingsform > ul > li:nth-child(3) > a")
+    step3ConnectionSettingsBox = step3ConnectionSettings.click()
+
+    setTaker = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(6) > select")
+    setTakervalue = setTaker.get_attribute("value")
+
+
     return driver
 
-#BELOW FUNCTION NEEDS COMPLETING
-def notesVariables(driver):
-    return driver
 
 
-def datastoreSettingsVariables(driver):
-    return driver
+def checkCustomOrStandardProcessingStepsAndCopyLiberoStep(driver, Platform): #unfinished - do it later
+    #subnav > li:nth-child(7) > a  .click()
+    #content > ul:nth-child(6) > li:nth-child(1) > a .click
+
+    # Custom if it has effortVariable == custom or customSteps (uses create 850 held only, or any other unique held stylesheet, uses any other unexpected steps - do a list of acceptable step names <-- will need to go into each one.)
+    return driver, liberoStep, customBoolean
+
 
 
 def logsDownloadOldSheetForComparison(driver):
+
+    #download from logs
+    openLogs2 = "#subnav > li:nth-child(8) > a"
+    openLogs2box = driver.find_element('css selector', openLogs2)
+    openLogs2box.click()
+    sleep(0.5)
+
+
+    openMostRecentHarvest = "#content > table > tbody > tr:nth-child(2) > td:nth-child(1) > a"
+    openMostRecentHarvestbox = driver.find_element('css selector', openMostRecentHarvest)
+    openMostRecentHarvestbox.click()
+    sleep(0.5)
+   
+
+    downloadAll2 = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
+    downloadAll2Box = driver.find_element('css selector', downloadAll2)
+    downloadAll2Box.click()
+    sleep(0.5)
+
     return driver
 
 
@@ -209,15 +263,15 @@ def createNewContributorBegin(driver):
 def inputContributorDetails(driver):
     name_insert = "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]"
     drive = driver.find_element('css selector', name_insert)
-    driver.send_keys("Name VARIABLE INSERTION" )
+    driver.send_keys(contributorNamevalue)
     driver.send_keys(Keys.TAB)
-    driver.send_keys("Description VARIABLE INSERTION" )
+    driver.send_keys(descriptionvalue)
     driver.send_keys(Keys.TAB)
-    driver.send_keys("Platform VARIABLE INSERTION" )
+    driver.send_keys(platformValue)
     driver.send_keys(Keys.TAB)
-    driver.send_keys("org ID VARIABLE INSERTION" )
+    driver.send_keys(orgIDvalue)
     driver.send_keys(Keys.TAB)
-    driver.send_keys("s" )
+    driver.send_keys(workEffort)
     driver.send_keys(Keys.TAB)
     driver.send_keys(Keys.TAB)
     driver.send_keys(Keys.ENTER)
@@ -266,7 +320,7 @@ def addContributorContactDetails(driver, contributors):
 def inputConnectionDetails(driver):
     urlPath = "#settingsform > fieldset > dl > dd:nth-child(6) > input"
     urlPathBox = driver.find_element('css selector', urlPath)
-    urlPathBox = driver.send_keys("URL VARIABLE")
+    urlPathBox = driver.send_keys(urlTakervalue)
 
 
     saveConnectionSettings = "#settingsform > ul > li:nth-child(3) > a"
@@ -279,7 +333,7 @@ def inputConnectionDetails(driver):
     setInsert = "#settingsform > fieldset > dl > dd:nth-child(8) > input[type=text]"
     setInsertBox = driver.find_element('css selector', setInsert)
  
-    urlInsertBox = driver.send_keys("SET VARIABLE")
+    urlInsertBox = driver.send_keys(setTakervalue)
     driver.send_keys(Keys.TAB)
     driver.send_keys(Keys.BACKSPACE)
     driver.send_keys(Keys.BACKSPACE)
@@ -295,7 +349,7 @@ def inputConnectionDetails(driver):
     urlInsertBox = driver.send_keys("500")
     driver.send_keys(Keys.TAB)
     #below will need logic for the SirsiDynix Platforms
-    driver = driver.send_keys("Platform VARIABLE")
+    driver = driver.send_keys(platformValue)
 
     #mainsubmit
     saveContributor = "#mainsubmit"
@@ -323,7 +377,7 @@ def inputDataStoreSettings(driver):
     #settingsform > fieldset > dl > dd:nth-child(2) > input
     editNuc = "    #settingsform > fieldset > dl > dd:nth-child(2) > input"
     editNucBox = driver.find_element('css selector', editNuc)
-    editNucBox.send_keys(NUC)
+    editNucBox.send_keys(contributorNUCvalue)
     sleep(0.5)
 
     saveDataStore = "#settingsform > ul > li:nth-child(2) > a"
@@ -408,7 +462,11 @@ def runTestHarvest(driver):
     fiftyRecordsbox = driver.find_element('css selector', fiftyRecords)
     fiftyRecordsbox.click()
     sleep(0.5)
-
+    #the below may break it as it does not exist on first harvest.
+    fromTheEarliest = "#manual > dd:nth-child(6) > dl > dd:nth-child(3) > input:nth-child(3)"
+    fromTheEarliestbox = driver.find_element('css selector', fromTheEarliest)
+    fromTheEarliestbox.click()
+    sleep(0.5)
 
     harvest = "#mainsubmit"
     harvestbox = driver.find_element('css selector', harvest)
@@ -425,22 +483,10 @@ def downloadLogs(driver):
     sleep(0.5)
 
 
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.ENTER)
+    openMostRecentHarvest2 = "#content > table > tbody > tr:nth-child(2) > td:nth-child(1) > a"
+    openMostRecentHarvestbox2 = driver.find_element('css selector', openMostRecentHarvest2)
+    openMostRecentHarvestbox2.click()
+    sleep(0.5)
     
     downloadAll = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
     downloadAllbox = driver.find_element('css selector', downloadAll)

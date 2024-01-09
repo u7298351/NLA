@@ -31,10 +31,24 @@ scraper_main(max_iterations)
 #need code to deal with contributor type dropdown - variable and insert.
 
 
-def scraper_main(max_iterations):
+def scraper_main(max_iterations, csv_file_path):
     download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + contributorNamevalue)
     driver = start_chrome_with_download_path(download_folder)
-    driver = process_csv_data(driver, max_iterations)
+
+    with open(csv_file_path, 'r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)  # Skip the header row if there is one
+
+        for i, row in enumerate(csv_reader):
+            if i >= max_iterations:
+                break
+
+            data = row[0]  # Assuming the data you need is in the first column
+            driver = collect_Input_GUI_And_CSVDetails(driver, data)
+            driver, contributors = contributorDetailsVariables(driver)
+            driver = addContributorContactDetails(driver, contributors)
+            driver = create_new_contributor(driver, data)
+
     driver.close()
 
 def start_chrome():
@@ -80,7 +94,7 @@ def process_csv_data(driver, max_iterations):
     return driver
 
 
-def collect_Input_GUI_And_CSVDetails(driver, data):
+def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
     url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
     driver.get(url)
     sleep(0.5)
@@ -100,15 +114,16 @@ def collect_Input_GUI_And_CSVDetails(driver, data):
     return driver
 
 
-def copyContributorVariables(driver):
+def copyContributorVariables(driver, contributorNamevalue):
     # need to copy the variables from the contributor page
     # need to paste the variables into the new contributor page
     # Extract the value from the first textbox
-    driver = contributorVariables(driver)
+    driver = contributorVariables(driver, contributorNamevalue, contributorributorNamevalue)
     driver = contributorDetailsVariables(driver)
     driver = connectionSettingsVariables(driver)
     driver = runTestHarvest(driver)
-    driver = logsDownloadOldSheetForComparison(driver)
+    driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
+    return driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
 
 
 def contributorVariables(driver):
@@ -169,15 +184,17 @@ def contributorDetailsVariables(driver):
             name_selector = base_selector.format(index, 1)
             job_title_selector = base_selector.format(index, 2)
             email_selector = base_selector.format(index, 3)
+            type_selector = base_selector.format(index, 7)
 
             name_field = driver.find_element(By.CSS_SELECTOR, name_selector)
             job_title_field = driver.find_element(By.CSS_SELECTOR, job_title_selector)
             email_field = driver.find_element(By.CSS_SELECTOR, email_selector)
-
+            type_field = driver.find_element(By.CSS_SELECTOR, type_selector)
             contributors.append({
                 'name': name_field.get_attribute("value"),
                 'job_title': job_title_field.get_attribute("value"),
                 'email': email_field.get_attribute("value")
+                'type': type_field.get_attribute("value")
             })
 
             index += 1
@@ -217,10 +234,11 @@ def connectionSettingsVariables(driver):
 
 
 def checkCustomOrStandardProcessingStepsAndCopyLiberoStep(driver, Platform): #unfinished - do it later
-    #subnav > li:nth-child(7) > a  .click()
-    #content > ul:nth-child(6) > li:nth-child(1) > a .click
+    #subnav > li:nth-child(7) > a 
+    #content > ul:nth-child(6) > li:nth-child(1) > a 
 
-    # Custom if it has effortVariable == custom or customSteps (uses create 850 held only, or any other unique held stylesheet, uses any other unexpected steps - do a list of acceptable step names <-- will need to go into each one.)
+    # Custom if it has effortVariable == custom or customSteps or has notes (uses create 850 held only, or any other unique held stylesheet, uses any other unexpected steps - do a list of acceptable step names <-- will need to go into each one.)
+    
     return driver, liberoStep, customBoolean
 
 
@@ -249,18 +267,18 @@ def logsDownloadOldSheetForComparison(driver):
     return driver
 
 
-def create_new_contributor(driver, data):
+def create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):
 
     # need to break out the data variable array for the individual variable names to call and insert them where relevant for the following functions
 
     driver = createNewContributorBegin(driver)
-    driver = inputContributorDetails(driver)
-    driver = addContributorContactDetails(driver)
-    driver = inputConnectionDetails(driver)
-    driver = inputDataStoreSettings(driver)
-    driver = editProcessingSteps(driver)
+    driver = inputContributorDetails(driver, contributorNamevalue, orgIDvalue, workEffortvalue, platformValue, descriptionvalue)
+    driver = addContributorContactDetails(driver, contributors)
+    driver = inputConnectionDetails(driver, urlTakervalue, setTakervalue)
+    driver = inputDataStoreSettings(driver, contributorNUCvalue)
+    driver = editProcessingSteps(drive, contributorNUCvaluer)
     driver = runTestHarvest(driver)
-    driver = downloadLogs(driver)
+    driver = downloadLogs(driver, contributorNamevalue)
     return driver
 
 
@@ -278,24 +296,28 @@ def createNewContributorBegin(driver):
 
     return driver
 
-
-def inputContributorDetails(driver):
+def inputContributorDetails(driver, contributorNamevalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue):
+    # Start with the first input field
     name_insert = "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]"
-    drive = driver.find_element('css selector', name_insert)
-    driver.send_keys(contributorNamevalue)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(descriptionvalue)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(platformValue)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(orgIDvalue)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(workEffort)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.ENTER)
-    driver.send_keys(Keys.TAB)
-    return driver 
+    name_insertBox = driver.find_element(By.CSS_SELECTOR, name_insert)
+    name_insertBox.click()  # Focus on the name insert box
+
+    # Now send the keys in sequence, using TAB to navigate between fields
+    name_insertBox.send_keys(contributorNamevalue)
+    name_insertBox.send_keys(Keys.TAB)
+    name_insertBox.send_keys(descriptionvalue)
+    name_insertBox.send_keys(Keys.TAB)
+    name_insertBox.send_keys(platformValue)
+    name_insertBox.send_keys(Keys.TAB)
+    name_insertBox.send_keys(orgIDvalue)
+    name_insertBox.send_keys(Keys.TAB)
+    name_insertBox.send_keys(workEffortvalue)
+    name_insertBox.send_keys(Keys.TAB)
+    name_insertBox.send_keys(Keys.TAB)  # Assuming two tabs to reach the submit or next input
+    name_insertBox.send_keys(Keys.ENTER)
+
+    return driver
+
 
 
 def addContributorContactDetails(driver, contributors):
@@ -335,74 +357,66 @@ def addContributorContactDetails(driver, contributors):
     return driver
 
 
-
-def inputConnectionDetails(driver):
+def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
+    # Input URL
     urlPath = "#settingsform > fieldset > dl > dd:nth-child(6) > input"
-    urlPathBox = driver.find_element('css selector', urlPath)
-    urlPathBox = driver.send_keys(urlTakervalue)
+    urlPathBox = driver.find_element(By.CSS_SELECTOR, urlPath)
+    urlPathBox.send_keys(urlTakervalue)
 
-
+    # Save Connection Settings
     saveConnectionSettings = "#settingsform > ul > li:nth-child(3) > a"
-    saveConnectionSettingsBox = driver.find_element('css selector', saveConnectionSettings)
+    saveConnectionSettingsBox = driver.find_element(By.CSS_SELECTOR, saveConnectionSettings)
     saveConnectionSettingsBox.click()
     sleep(0.5)
 
-
-
+    # Input SET and navigate to format selection
     setInsert = "#settingsform > fieldset > dl > dd:nth-child(8) > input[type=text]"
-    setInsertBox = driver.find_element('css selector', setInsert)
- 
-    urlInsertBox = driver.send_keys(setTakervalue)
-    driver.send_keys(Keys.TAB)
-    driver.send_keys(Keys.BACKSPACE)
-    driver.send_keys(Keys.BACKSPACE)
-    driver.send_keys(Keys.BACKSPACE)
-    driver.send_keys(Keys.BACKSPACE)
-    driver.send_keys(Keys.BACKSPACE)
-    driver.send_keys(Keys.BACKSPACE)
-    driver.send_keys("marc21")
-    
-    # urlInsertBox = driver.send_keys("SET VARIABLE")
-    # urlInsertBox = driver.send_keys("marcXML") #this needs correcting!
-    driver.send_keys(Keys.TAB)
-    urlInsertBox = driver.send_keys("500")
-    driver.send_keys(Keys.TAB)
-    #below will need logic for the SirsiDynix Platforms
-    driver = driver.send_keys(platformValue)
+    setInsertBox = driver.find_element(By.CSS_SELECTOR, setInsert)
+    setInsertBox.send_keys(setTakervalue)
+    setInsertBox.send_keys(Keys.TAB)
 
-    #mainsubmit
+    # Clear the existing format value and input "marc21"
+    for _ in range(6):  # Assuming 6 backspaces are sufficient to clear the field
+        setInsertBox.send_keys(Keys.BACKSPACE)
+    setInsertBox.send_keys("marc21")
+
+    # Navigate to the next field and input the value "500"
+    setInsertBox.send_keys(Keys.TAB)
+    setInsertBox.send_keys("500")
+    setInsertBox.send_keys(Keys.TAB)
+
+    # Input Platform Value
+    setInsertBox.send_keys(platformValue)
+
+    # Submit the form
     saveContributor = "#mainsubmit"
-    saveContributorBox = driver.find_element('css selector', saveContributor)
+    saveContributorBox = driver.find_element(By.CSS_SELECTOR, saveContributor)
     saveContributorBox.click()
     sleep(0.5)
 
-    sleep(0.5)
     return driver
 
 
-def inputDataStoreSettings(driver):
 
+
+def inputDataStoreSettings(driver, contributorNUCvalue):
     gotoDataStore = "#subnav > li:nth-child(4) > a"
-    gotoDataStoreBox = driver.find_element('css selector', gotoDataStore)
+    gotoDataStoreBox = driver.find_element(By.CSS_SELECTOR, gotoDataStore)
     gotoDataStoreBox.click()
-    sleep(0.5)
-
 
     editDataStore = "#content > ul > li > a"
-    editDataStoreBox = driver.find_element('css selector', editDataStore)
+    editDataStoreBox = driver.find_element(By.CSS_SELECTOR, editDataStore)
     editDataStoreBox.click()
-    sleep(0.5)
 
-    #settingsform > fieldset > dl > dd:nth-child(2) > input
-    editNuc = "    #settingsform > fieldset > dl > dd:nth-child(2) > input"
-    editNucBox = driver.find_element('css selector', editNuc)
+    editNuc = "#settingsform > fieldset > dl > dd:nth-child(2) > input"
+    editNucBox = driver.find_element(By.CSS_SELECTOR, editNuc)
     editNucBox.send_keys(contributorNUCvalue)
-    sleep(0.5)
 
     saveDataStore = "#settingsform > ul > li:nth-child(2) > a"
-    saveDataStoreBox = driver.find_element('css selector', saveDataStore)
+    saveDataStoreBox = driver.find_element(By.CSS_SELECTOR, saveDataStore)
     saveDataStoreBox.click()
-    sleep(0.5)
+
+    return driver
 
 
 
@@ -495,24 +509,23 @@ def runTestHarvest(driver):
     return driver
 
 
-def downloadLogs(driver):
+def downloadLogs(driver, contributorNamevalue):
     logs = "#subnav > li.on > a"
-    logsbox = driver.find_element('css selector', logs)
+    logsbox = driver.find_element(By.CSS_SELECTOR, logs)
     logsbox.click()
-    sleep(0.5)
-
 
     openMostRecentHarvest2 = "#content > table > tbody > tr:nth-child(2) > td:nth-child(1) > a"
-    openMostRecentHarvestbox2 = driver.find_element('css selector', oxpenMostRecentHarvest2)
+    openMostRecentHarvestbox2 = driver.find_element(By.CSS_SELECTOR, openMostRecentHarvest2)
     openMostRecentHarvestbox2.click()
-    sleep(0.5)
+
     create_download_folder("ANBS", contributorNamevalue)
+
     downloadAll = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
-    downloadAllbox = driver.find_element('css selector', downloadAll)
+    downloadAllbox = driver.find_element(By.CSS_SELECTOR, downloadAll)
     downloadAllbox.click()
-    sleep(0.5)
 
     return driver
+
 
 
 def create_download_folder(db, contributorNamevalue):

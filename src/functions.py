@@ -3,16 +3,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+import tkinter as tk
 import csv
 import re
 import os
+
 import subprocess
 from time import sleep
 
 
 # Example usage
-max_iterations = 10  # Set this to control the number of iterations
-scraper_main(max_iterations)
 #need to add function inputs
 #need to check logic for - platform sirsi
 #need to check logic for - variable storing
@@ -29,12 +29,17 @@ scraper_main(max_iterations)
 #need marcedit file conversion
 #need gui for general harvester creation
 #need code to deal with contributor type dropdown - variable and insert.
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from time import sleep
 
+# Example callback function
+def print_message(message):
+    print(message)
 
-def scraper_main(max_iterations, csv_file_path):
-    download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + contributorNamevalue)
-    driver = start_chrome_with_download_path(download_folder)
+# Test the function with the callback
 
+def scraper_main(max_iterations, csv_file_path, update_gui_callback):
     with open(csv_file_path, 'r') as file:
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row if there is one
@@ -43,13 +48,28 @@ def scraper_main(max_iterations, csv_file_path):
             if i >= max_iterations:
                 break
 
-            data = row[0]  # Assuming the data you need is in the first column
-            driver = collect_Input_GUI_And_CSVDetails(driver, data)
+            # Assuming the contributorNamevalue is in a specific column, e.g., first column
+            contributorNamevalue = row[0]  # Adjust the index as per your CSV structure
+            update_gui_callback(f"Processing row {i+1}: {contributorNamevalue}")
+
+            # Set up the download folder for each contributor
+            download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + contributorNamevalue)
+            driver = start_chrome_with_download_path(download_folder)
+            update_gui_callback("Chrome started with download path set.")
+
+            # Rest of the processing logic
+            driver = collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue)
             driver, contributors = contributorDetailsVariables(driver)
             driver = addContributorContactDetails(driver, contributors)
-            driver = create_new_contributor(driver, data)
+            driver = create_new_contributor(driver, contributorNamevalue)
+            update_gui_callback(f"Row {i+1} processed successfully.")
 
-    driver.close()
+            # Close the driver after processing each row
+            driver.close()
+
+    update_gui_callback("Scraping completed.")
+
+
 
 def start_chrome():
     chrome_options = Options()
@@ -193,7 +213,7 @@ def contributorDetailsVariables(driver):
             contributors.append({
                 'name': name_field.get_attribute("value"),
                 'job_title': job_title_field.get_attribute("value"),
-                'email': email_field.get_attribute("value")
+                'email': email_field.get_attribute("value"),
                 'type': type_field.get_attribute("value")
             })
 
@@ -530,7 +550,7 @@ def downloadLogs(driver, contributorNamevalue):
 
 def create_download_folder(db, contributorNamevalue):
     folder_name = db + contributorNamevalue
-    folder_path = os.path.join("C:\Users\lachlan\Downloads\HarvesterANBDtoANBS", folder_name)  # Specify the parent directory
+    folder_path = os.path.join(r"C:\Users\lachlan\Downloads\HarvesterANBDtoANBS", folder_name)  # Specify the parent directory
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     return folder_path
@@ -543,9 +563,9 @@ def output_csv(array_data, file_path):
             writer.writerow(row)
 
 # Example usage for outputting a CSV
-array_data = [["Header1", "Header2"], ["Row1Data1", "Row1Data2"]]
-csv_file_path = os.path.join(download_folder, "output.csv")
-output_csv(array_data, csv_file_path)
+# array_data = [["Header1", "Header2"], ["Row1Data1", "Row1Data2"]]
+# csv_file_path = os.path.join(download_folder, "output.csv")
+# output_csv(array_data, csv_file_path)
 
 def add_boolean_to_csv(array_data, boolean_variable, file_path):
     modified_data = []
@@ -557,8 +577,8 @@ def add_boolean_to_csv(array_data, boolean_variable, file_path):
     output_csv(modified_data, file_path)
 
 # Example usage
-boolean_variable = True  # Set this based on your condition
-add_boolean_to_csv(array_data, boolean_variable, csv_file_path)
+# boolean_variable = True  # Set this based on your condition
+# add_boolean_to_csv(array_data, boolean_variable, csv_file_path)
 
 def convert_marcxml_to_marc21(source_file, destination_file):
     command = f"%MARCEDIT%/cmarcedit.exe -s \"{source_file}\" -d \"{destination_file}\" -xmlmarc -utf8"
@@ -568,24 +588,24 @@ def convert_marc_to_mrk(source_file, destination_file):
     command = f"%MARCEDIT%/cmarcedit.exe -s \"{source_file}\" -d \"{destination_file}\" -break -utf8"
     subprocess.run(command, shell=True)
 
-# Example usage
-contributorNamevalue = "MYNUC"  # Replace with actual value
-folder_path = f"C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS\\ANBS {contributorNamevalue}"
+# # Example usage
+# contributorNamevalue = "MYNUC"  # Replace with actual value
+# folder_path = f"C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS\\ANBS {contributorNamevalue}"
 
-# Assuming the source file name and format
-source_marcxml_file = os.path.join(folder_path, "source_file.xml")
-intermediate_marc21_file = os.path.join(folder_path, "intermediate_file.mrc")
-final_mrk_file = os.path.join(folder_path, "final_file.mrk")
+# # Assuming the source file name and format
+# source_marcxml_file = os.path.join(folder_path, "source_file.xml")
+# intermediate_marc21_file = os.path.join(folder_path, "intermediate_file.mrc")
+# final_mrk_file = os.path.join(folder_path, "final_file.mrk")
 
-# Convert MARCXML to MARC21
-convert_marcxml_to_marc21(source_marcxml_file, intermediate_marc21_file)
+# # Convert MARCXML to MARC21
+# convert_marcxml_to_marc21(source_marcxml_file, intermediate_marc21_file)
 
-# Convert MARC21 to MRK
-convert_marc_to_mrk(intermediate_marc21_file, final_mrk_file)
+# # Convert MARC21 to MRK
+# convert_marc_to_mrk(intermediate_marc21_file, final_mrk_file)
 
 
-#more exammple apparently
-marcedit_path = os.getenv('MARCEDIT')
+# #more exammple apparently
+# marcedit_path = os.getenv('MARCEDIT')
 
 # Use `marcedit_path` in your subprocess calls
 # Example:

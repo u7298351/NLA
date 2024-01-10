@@ -38,10 +38,8 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
     sleep(5)
 
     username = driver.find_element(By.CSS_SELECTOR, "#username")
-
     sleep(0.5)
     password = driver.find_element(By.CSS_SELECTOR, "#password")
-
     sleep(0.5)
     login = driver.find_element(By.CSS_SELECTOR, "#kc-login")
     login.click()
@@ -205,11 +203,11 @@ def contributorVariables(driver, contributorNamevalue):
     
     contributorNUC = extract_contributor_NUC(contributorNamevalue)
     print("got passed NUC extraction")
-    
+    print(contributorNUC)
     description = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(4) > input[type=text]")
     descriptionvalue = description.get_attribute("value")
     print("got passed description")
-    
+    print(descriptionvalue)
     
     platform = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     platformValue = platform.get_attribute("value")  # Retrieve the current value of the element
@@ -222,14 +220,22 @@ def contributorVariables(driver, contributorNamevalue):
     if platformValueLower in ("symphony", "sirsidynix", "aurora", "Symphony", "Sirsidynix", "SirsiDynix", "Aurora"):
         platformValue = "SirsiDynix"
     print("got passed platform logic")
-
+    print(platformValue)
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
     print("got passed orgID")
+    print(orgIDvalue)
 
-    workEffort=driver.find_element("#contributorform > fieldset > dl > dd:nth-child(14) > select") #contributorform > fieldset > dl > dd:nth-child(14) > select > option:nth-child(2) I may need to use this instead
-    workEffortvalue = workEffort.get_attribute("value")
-    print("got passed workEffort")
+    # Locate the <select> element
+    workEffort_dropdown = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(14) > select")
+
+# Create a Select object
+    select_element = Select(workEffort_dropdown)
+
+    selected_option = select_element.first_selected_option
+    workEffortvalue = selected_option.get_attribute("value")
+    print("Selected work effort value:", workEffortvalue)
+    print(workEffortvalue)
 # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
@@ -258,6 +264,7 @@ def contributorDetailsVariables(driver):
 
     while True:
         try:
+            print("got to name_select")
             name_selector = base_selector.format(index, 1)
             job_title_selector = base_selector.format(index, 2)
             email_selector = base_selector.format(index, 3)
@@ -267,44 +274,49 @@ def contributorDetailsVariables(driver):
             job_title_field = driver.find_element(By.CSS_SELECTOR, job_title_selector)
             email_field = driver.find_element(By.CSS_SELECTOR, email_selector)
             type_field = driver.find_element(By.CSS_SELECTOR, type_selector)
+            print("details found")
             contributors.append({
                 'name': name_field.get_attribute("value"),
                 'job_title': job_title_field.get_attribute("value"),
                 'email': email_field.get_attribute("value"),
                 'type': type_field.get_attribute("value")
             })
-
+            print("details appended")
             index += 1
         except Exception as e:
             # No more contributors
+            print("No more contributors")
             break
 
     return driver, contributors
 
 
 def connectionSettingsVariables(driver):
-    
+    print("got to connectionsettings variables")
     viewConnectionSettings = driver.find_element(By.CSS_SELECTOR, "#subnav > li:nth-child(3) > a")
     viewConnectionSettingsBox = viewConnectionSettings.click()
     sleep(0.5)
-    
+    print("got to connection settings")
     editConnectionSettingsAgain = driver.find_element(By.CSS_SELECTOR, "#content > ul > li > a")
     editConnectionSettingsAgainBox = editConnectionSettingsAgain.click()
     sleep(0.5)
-
+    print("first connection edit?")
     step2ConnectionSettings = driver.find_element(By.CSS_SELECTOR, "#step1 > ul > li:nth-child(2) > a")
     step2ConnectionSettingsBox = step2ConnectionSettings.click()
+    print("second connection edit?")
     
     urlTaker = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(4) > input")
     urlTakervalue = urlTaker.get_attribute("value")
-
+    print("got passed urlTaker")
+    print(urlTakervalue)
     #settingsform > fieldset > dl > dd:nth-child(4) > input
     step3ConnectionSettings = driver.find_element(By.css_selector, "#settingsform > ul > li:nth-child(3) > a")
     step3ConnectionSettingsBox = step3ConnectionSettings.click()
 
     setTaker = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(6) > select")
     setTakervalue = setTaker.get_attribute("value")
-
+    print("got passed set")
+    print(setTakervalue)
 
     return driver, urlTakervalue, setTakervalue
 

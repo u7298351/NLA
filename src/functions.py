@@ -32,17 +32,62 @@ from time import sleep
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from time import sleep
+def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
+    url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
+    driver.get(url)
+    sleep(5)
+
+    username = driver.find_element(By.CSS_SELECTOR, "#username")
+
+    sleep(0.5)
+    password = driver.find_element(By.CSS_SELECTOR, "#password")
+
+    sleep(0.5)
+    login = driver.find_element(By.CSS_SELECTOR, "#kc-login")
+    login.click()
+    sleep(1)
+
+    anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
+    anbd_box = driver.find_element(By.CSS_SELECTOR, anbd_path)
+    anbd_box.click()
+    sleep(0.5)
+    print(contributorNamevalue)
+    contributorNamevalue = re.sub(r'^.*?\[', '', contributorNamevalue)
+    print(contributorNamevalue)
+    try:
+        link_xpath = f"//a[contains(text(), '{contributorNamevalue}')]"
+        print(contributorNamevalue)
+        link = driver.find_element(By.XPATH, link_xpath)
+        link.click()
+        sleep(0.5)  # Wait for page to load after click
+    except Exception as e:
+        print(f"Error finding link for {contributorNamevalue}: {e}")
+    print("found contributor")
+    return driver
 
 # Example callback function
 def print_message(message):
     print(message)
-
+def start_chrome_with_download_path(download_path):
+    chrome_options = Options()
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--disable-extensions")
+    prefs = {"download.default_directory": download_path}
+    chrome_options.add_experimental_option("prefs", prefs)
+    driver = webdriver.Chrome(options=chrome_options)
+    sleep(5)
+    return driver
+def clean_contributor_name(name):
+    # Remove square brackets and colons from the name
+    cleaned_name = re.sub(r'[\[\]:]', '', name)
+    return cleaned_name
 # Test the function with the callback
-
 def scraper_main(max_iterations, csv_file_path, update_gui_callback):
+    print("got to scraper_main")
     with open(csv_file_path, 'r') as file:
         csv_reader = csv.reader(file)
-        next(csv_reader)  # Skip the header row if there is one
+        update_gui_callback("read file csv")
+         # Skip the header row if there is one
 
         for i, row in enumerate(csv_reader):
             if i >= max_iterations:
@@ -50,23 +95,37 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback):
 
             # Assuming the contributorNamevalue is in a specific column, e.g., first column
             contributorNamevalue = row[0]  # Adjust the index as per your CSV structure
-            update_gui_callback(f"Processing row {i+1}: {contributorNamevalue}")
+            update_gui_callback("got to contributor extraction")
 
+            update_gui_callback(f"Processing row {i+1}: {contributorNamevalue}")
+            update_gui_callback("got to contributor csv processing")
+            
             # Set up the download folder for each contributor
-            download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + contributorNamevalue)
+            download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + clean_contributor_name(contributorNamevalue))
             driver = start_chrome_with_download_path(download_folder)
             update_gui_callback("Chrome started with download path set.")
-
+            sleep(5)
             # Rest of the processing logic
             driver = collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue)
-            driver, contributors = contributorDetailsVariables(driver)
-            driver = addContributorContactDetails(driver, contributors)
-            driver = create_new_contributor(driver, contributorNamevalue)
-            update_gui_callback(f"Row {i+1} processed successfully.")
+            print("collectedInputDetails")
 
+            sleep(5)
+            driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            print("collectedcontributorvariables")
+
+            sleep(5)
+
+            driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            print("createdNewContributor")
+            sleep(5)
+            update_gui_callback(f"Row {i+1} processed successfully.")
+            sleep(5)
             # Close the driver after processing each row
+            update_gui_callback("driveris about to close")
+            
             driver.close()
 
+    
     update_gui_callback("Scraping completed.")
 
 
@@ -85,15 +144,13 @@ def start_chrome_with_download_path(download_path):
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-extensions")
-
-    # Set the default download directory to `download_path`
     prefs = {"download.default_directory": download_path}
     chrome_options.add_experimental_option("prefs", prefs)
-
     driver = webdriver.Chrome(options=chrome_options)
+    sleep(5)
     return driver
 
-def process_csv_data(driver, max_iterations):
+def process_csv_data(driver, max_iterations, contributorNamevalue):
     with open('your_file.csv', 'r') as file:
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row if there is one
@@ -105,94 +162,94 @@ def process_csv_data(driver, max_iterations):
 
             data = row[0]
             driver = collect_Input_GUI_And_CSVDetails(driver, data)
-
-            driver, contributors = contributorDetailsVariables(driver)
-            driver = addContributorContactDetails(driver, contributors)
-
-            driver = create_new_contributor(driver, data)
-
+            print("collectedInputDetails")
+            driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            print("collectedcontributorvariables")
+            driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            print("createdNewContributor")
     return driver
 
 
-def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
-    url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
-    driver.get(url)
-    sleep(0.5)
 
-    anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
-    anbd_box = driver.find_element(By.CSS_SELECTOR, anbd_path)
-    anbd_box.click()
-    sleep(0.5)
 
-    try:
-        link_xpath = f"//a[contains(text(), '{data}')]"
-        link = driver.find_element(By.XPATH, link_xpath)
-        link.click()
-        sleep(0.5)  # Wait for page to load after click
-    except Exception as e:
-        print(f"Error finding link for {data}: {e}")
-    return driver
 
 
 def copyContributorVariables(driver, contributorNamevalue):
-    # need to copy the variables from the contributor page
-    # need to paste the variables into the new contributor page
-    # Extract the value from the first textbox
-    driver = contributorVariables(driver, contributorNamevalue, contributorributorNamevalue)
-    driver = contributorDetailsVariables(driver)
-    driver = connectionSettingsVariables(driver)
+    # Ensure all functions are called in the correct order
+    # Extract variables from the contributor page
+    driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue = contributorVariables(driver, contributorNamevalue)
+    print("copied contributor setup details")
+    # Process contributor details
+    driver, contributors = contributorDetailsVariables(driver)
+    print("copied contributor details")
+    driver, urlTakervalue, setTakervalue = connectionSettingsVariables(driver)
+    print("copied contributor connection settings")
+
+    # Run test harvest
     driver = runTestHarvest(driver)
+    print("ran test harvest")
+
+    # Download logs and old sheet for comparison
     driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
-    return driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
+    print("downloaded logs")
+
+    return driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
 
 
-def contributorVariables(driver):
+def contributorVariables(driver, contributorNamevalue):
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
     editContributorvalue = editContributor.click()
     sleep(0.5)
+    print("got passed edit")
 
-    contributorName = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]")
-    contributorNamevalue = contributorName.get_attribute("value")
     
     contributorNUC = extract_contributor_NUC(contributorNamevalue)
+    print("got passed NUC extraction")
     
     description = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(4) > input[type=text]")
     descriptionvalue = description.get_attribute("value")
+    print("got passed description")
     
     
     platform = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     platformValue = platform.get_attribute("value")  # Retrieve the current value of the element
+    print("got passed platform")
 
 # Convert the platformValue to lowercase for case-insensitive comparison
     platformValueLower = platformValue.lower()
 
 # Check if the lowercase platformValue is one of the specified strings
-    if platformValueLower in ("symphony", "sirsidynix", "aurora"):
+    if platformValueLower in ("symphony", "sirsidynix", "aurora", "Symphony", "Sirsidynix", "SirsiDynix", "Aurora"):
         platformValue = "SirsiDynix"
+    print("got passed platform logic")
 
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
+    print("got passed orgID")
 
     workEffort=driver.find_element("#contributorform > fieldset > dl > dd:nth-child(14) > select") #contributorform > fieldset > dl > dd:nth-child(14) > select > option:nth-child(2) I may need to use this instead
     workEffortvalue = workEffort.get_attribute("value")
-    
+    print("got passed workEffort")
 # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
 
-    return driver
+    return driver, contributorNUC, descriptionvalue, platformValue, orgIDvalue, workEffortvalue
+
+
 
 def extract_contributor_NUC(contributorNamevalue):
-    # Regular expression to find characters between square brackets
-    match = re.search(r'\[(.*?)\]', contributorNamevalue)
+    # Regular expression to find all characters up to the first space
+    match = re.search(r'(\S+)', contributorNamevalue)
     if match:
-        # Extract the value between brackets
+        # Extract the value up to the first space
         contributorNUCvalue = match.group(1)
     else:
-        # Handle cases where no brackets are found
-        contributorNUCvalue = ""  # or some default value
+        # Handle cases where no match is found
+        contributorNUCvalue = ""
 
     return contributorNUCvalue
+
 
 def contributorDetailsVariables(driver):
     base_selector = "#contributorform > fieldset > table > tbody > tr:nth-child({}) > td:nth-child({}) > input"
@@ -249,17 +306,17 @@ def connectionSettingsVariables(driver):
     setTakervalue = setTaker.get_attribute("value")
 
 
-    return driver
+    return driver, urlTakervalue, setTakervalue
 
 
 
-def checkCustomOrStandardProcessingStepsAndCopyLiberoStep(driver, Platform): #unfinished - do it later
+# def checkCustomOrStandardProcessingStepsAndCopyLiberoStep(driver, Platform): #unfinished - do it later
     #subnav > li:nth-child(7) > a 
     #content > ul:nth-child(6) > li:nth-child(1) > a 
 
     # Custom if it has effortVariable == custom or customSteps or has notes (uses create 850 held only, or any other unique held stylesheet, uses any other unexpected steps - do a list of acceptable step names <-- will need to go into each one.)
     
-    return driver, liberoStep, customBoolean
+    # return driver, liberoStep, customBoolean
 
 
 

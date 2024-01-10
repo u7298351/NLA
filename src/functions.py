@@ -38,8 +38,10 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
     sleep(5)
 
     username = driver.find_element(By.CSS_SELECTOR, "#username")
+    username.send_keys("lknoke")
     sleep(0.5)
     password = driver.find_element(By.CSS_SELECTOR, "#password")
+    password.send_keys("Parisedmunds21!")
     sleep(0.5)
     login = driver.find_element(By.CSS_SELECTOR, "#kc-login")
     login.click()
@@ -226,12 +228,14 @@ def contributorVariables(driver, contributorNamevalue):
     print("got passed orgID")
     print(orgIDvalue)
 
+    
     # Locate the <select> element
     workEffort_dropdown = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(14) > select")
-
-# Create a Select object
+    print("found it")
+    # Create a Select object
     select_element = Select(workEffort_dropdown)
-
+    print("created select object")
+    # Retrieve the currently selected option
     selected_option = select_element.first_selected_option
     workEffortvalue = selected_option.get_attribute("value")
     print("Selected work effort value:", workEffortvalue)
@@ -310,13 +314,19 @@ def connectionSettingsVariables(driver):
     print("got passed urlTaker")
     print(urlTakervalue)
     #settingsform > fieldset > dl > dd:nth-child(4) > input
-    step3ConnectionSettings = driver.find_element(By.css_selector, "#settingsform > ul > li:nth-child(3) > a")
+    step3ConnectionSettings = driver.find_element(By.CSS_SELECTOR, "#settingsform > ul > li:nth-child(3) > a")
     step3ConnectionSettingsBox = step3ConnectionSettings.click()
 
-    setTaker = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(6) > select")
-    setTakervalue = setTaker.get_attribute("value")
-    print("got passed set")
-    print(setTakervalue)
+    setTaker_dropdown = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(6) > select")
+
+    # Create a Select object
+    select_element = Select(setTaker_dropdown)
+
+    # Get the currently selected option
+    selected_option = select_element.first_selected_option
+    setTakervalue = selected_option.get_attribute("value")
+
+    print("Selected set taker value:", setTakervalue)
 
     return driver, urlTakervalue, setTakervalue
 
@@ -332,25 +342,25 @@ def connectionSettingsVariables(driver):
 
 
 
-def logsDownloadOldSheetForComparison(driver):
+def logsDownloadOldSheetForComparison(driver, contributorNamevalue):
 
     #download from logs
     openLogs2 = "#subnav > li:nth-child(8) > a"
     openLogs2box = driver.find_element('css selector', openLogs2)
     openLogs2box.click()
     sleep(0.5)
-
-
+    print("got to downloads")
     openMostRecentHarvest = "#content > table > tbody > tr:nth-child(2) > td:nth-child(1) > a"
     openMostRecentHarvestbox = driver.find_element('css selector', openMostRecentHarvest)
     openMostRecentHarvestbox.click()
     sleep(0.5)
-   
+    print("got to specific harvest")
     create_download_folder("ANBD", contributorNamevalue)
-
+    print("created folder")
     downloadAll2 = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
     downloadAll2Box = driver.find_element('css selector', downloadAll2)
     downloadAll2Box.click()
+    print("downloaded logs")
     sleep(0.5)
 
     return driver
@@ -361,13 +371,21 @@ def create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, de
     # need to break out the data variable array for the individual variable names to call and insert them where relevant for the following functions
 
     driver = createNewContributorBegin(driver)
+    print("created new contributor")
     driver = inputContributorDetails(driver, contributorNamevalue, orgIDvalue, workEffortvalue, platformValue, descriptionvalue)
+    print("inputted new contributor details")
     driver = addContributorContactDetails(driver, contributors)
+    print("added contact details")
     driver = inputConnectionDetails(driver, urlTakervalue, setTakervalue)
+    print("connection details done")
     driver = inputDataStoreSettings(driver, contributorNUCvalue)
-    driver = editProcessingSteps(drive, contributorNUCvaluer)
+    print("data store done")
+    driver = editProcessingSteps(driver, contributorNUCvalue)
+    print("processing steps eddited")
     driver = runTestHarvest(driver)
+    print("test harvest run")
     driver = downloadLogs(driver, contributorNamevalue)
+    print("logs downloaded")
     return driver
 
 
@@ -400,11 +418,19 @@ def inputContributorDetails(driver, contributorNamevalue, descriptionvalue, plat
     name_insertBox.send_keys(Keys.TAB)
     name_insertBox.send_keys(orgIDvalue)
     name_insertBox.send_keys(Keys.TAB)
-    name_insertBox.send_keys(workEffortvalue)
-    name_insertBox.send_keys(Keys.TAB)
-    name_insertBox.send_keys(Keys.TAB)  # Assuming two tabs to reach the submit or next input
-    name_insertBox.send_keys(Keys.ENTER)
+    print("added orgid")
+    # Locate the <select> element for workEffort
+    workEffort_dropdown = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(14) > select")
 
+# Create a Select object for the workEffort dropdown
+    select_workEffort = Select(workEffort_dropdown)
+# Assuming workEffortvalue holds the value of the option you want to select
+# Select the option by its value in the workEffort dropdown
+    select_workEffort.select_by_value(workEffortvalue)
+    print("selected workeffort")
+
+
+    print(f"workEffort option with value '{workEffortvalue}' selected")
     return driver
 
 
@@ -415,7 +441,7 @@ def addContributorContactDetails(driver, contributors):
         name_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(1) > input"
         job_title_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(2) > input"
         email_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(3) > input"
-
+        print("forgot to add type of contributor")
         # Find and populate the name field
         name_field = driver.find_element(By.CSS_SELECTOR, name_selector)
         name_field.clear()
@@ -461,7 +487,17 @@ def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
     # Input SET and navigate to format selection
     setInsert = "#settingsform > fieldset > dl > dd:nth-child(8) > input[type=text]"
     setInsertBox = driver.find_element(By.CSS_SELECTOR, setInsert)
-    setInsertBox.send_keys(setTakervalue)
+    # Locate the <select> element
+    setTaker_dropdown = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(6) > select")
+
+    # Create a Select object
+    select_element = Select(setTaker_dropdown)
+
+    # Assuming setTakervalue holds the value of the option you want to select
+    # Select the option by its value
+    select_element.select_by_value(setTakervalue)
+
+    print(f"Option with value '{setTakervalue}' selected")
     setInsertBox.send_keys(Keys.TAB)
 
     # Clear the existing format value and input "marc21"
@@ -518,27 +554,29 @@ def editProcessingSteps(driver, platformVariable, NUCVariable):
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
     goToProcessingBox.click()
     
-
+    print("got to processing")
     # edit test steps - I have not changed this yet - need to look at it later - def wrong
     driver = clickProcessingStepButton(driver, platformVariable)
     sleep(0.5)
     
+    print("processing step opened")
     
     editNucStep = "#ProcessingStepsForm > table > tbody > tr:nth-child(11) > td:nth-child(8) > ul > li:nth-child(1) > a"
     editNucStepBox = driver.find_element('css selector', editNucStep)
     editNucStepBox.click()
     sleep(0.5)
-
+    
     insertNUCText = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr:nth-child(2) > td:nth-child(2) > div > table > tbody > tr.clone > td:nth-child(2) > input"
     insertNUCTextbox = driver.find_element('css selector', insertNUCText)
     insertNUCTextbox.click()
     sleep(0.5)
+    print("added NUC")
    
     replaceCHANGE = "#processingstepform > dl > dd:nth-child(12) > input[type=text]"
     replaceCHANGEbox = driver.find_element('css selector', replaceCHANGE)
     replaceCHANGEbox.click()
     sleep(0.5)
-   
+    print("forgot to add NUC change replace code")
     saveNuc = "#mainsubmit"
     saveNucbox = driver.find_element('css selector', saveNuc)
     saveNucbox.click()
@@ -549,6 +587,7 @@ def editProcessingSteps(driver, platformVariable, NUCVariable):
     saveStepsbox = driver.find_element('css selector', saveSteps)
     saveStepsbox.click()
     sleep(0.5)
+    print("finished processing steps")
 
     return driver
 

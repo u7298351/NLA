@@ -7,7 +7,6 @@ import tkinter as tk
 import csv
 import re
 import os
-
 import subprocess
 from time import sleep
 
@@ -38,10 +37,8 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
     sleep(5)
 
     username = driver.find_element(By.CSS_SELECTOR, "#username")
-    username.send_keys("lknoke")
     sleep(0.5)
     password = driver.find_element(By.CSS_SELECTOR, "#password")
-    password.send_keys("Parisedmunds21!")
     sleep(0.5)
     login = driver.find_element(By.CSS_SELECTOR, "#kc-login")
     login.click()
@@ -755,11 +752,20 @@ def convert_marc_formats(contributor_name, folder_path, marcedit_path):
 # convert_marc_formats(contributorNamevalue, folder_path, marcedit_path)
 
 
-def notesPresenceChecker(driver)
+def notesPresenceChecker(driver):
     return driver
 
-def customHarvestChecker(driver, workEffort, presenceOfNotes):
+def minimumPresenceChecker(driver):
+    return driver, minimumPresence
+def unusualCheckers(driver):
+    return driver, unusualSteps
 
+def customHarvestChecker(driver, workEffort, presenceOfNotes):
+    driver, unusualSteps = unusualChecker(driver)
+    driver, minimumPresence = minimumPresenceChecker(driver)
+    driver, presenceOfNotes = notesPresenceChecker(driver)
+    if workEffort == "custom"|workEffort == "Not selected"|presenceOfNotes == "True"|minimumPresence== "False"|unusualSteps=="True":
+        workEffort = "custom"
     #will check for minimum presence of certain fields
     #will check for fields that are not contained within a list
     #will check each of the steps more specifically to see if they are generally compliant with expectations

@@ -386,6 +386,8 @@ def create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, de
     print("test harvest run")
     driver = downloadLogs(driver, contributorNamevalue)
     print("logs downloaded")
+    print("forgot to add in the correct folder and marcpath in the following function")
+    # convert_marc_formats(contributorNamevalue, folderPath, marcPath) #these should be hardcoded for me
     return driver
 
 
@@ -723,3 +725,44 @@ def convert_marc_to_mrk(source_file, destination_file):
 # if enviornment path is locked 
 # downloadLogsmarcedit_path = "C:\\path\\to\\MarcEdit\\cmarcedit.exe"
 # # Use `marcedit_path` in your script
+
+
+
+import subprocess
+import os
+
+def convert_marc_formats(contributor_name, folder_path, marcedit_path):
+    # Construct the file paths
+    source_marcxml_file = os.path.join(folder_path, f"{contributor_name}_source_file.xml")
+    intermediate_marc21_file = os.path.join(folder_path, f"{contributor_name}_intermediate_file.mrc")
+    final_mrk_file = os.path.join(folder_path, f"{contributor_name}_final_file.mrk")
+
+    # Convert MARCXML to MARC21
+    marcxml_to_marc21_cmd = f"{marcedit_path} -s \"{source_marcxml_file}\" -d \"{intermediate_marc21_file}\" -xmlmarc -utf8"
+    subprocess.run(marcxml_to_marc21_cmd, shell=True)
+    print(f"Converted MARCXML to MARC21: {intermediate_marc21_file}")
+
+    # Convert MARC21 to MRK
+    marc21_to_mrk_cmd = f"{marcedit_path} -s \"{intermediate_marc21_file}\" -d \"{final_mrk_file}\" -break -utf8"
+    subprocess.run(marc21_to_mrk_cmd, shell=True)
+    print(f"Converted MARC21 to MRK: {final_mrk_file}")
+
+# Example usage
+# contributorNamevalue = "MYNUC"  # Replace with actual value
+# folder_path = f"C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS\\ANBS{contributorNamevalue}"
+# marcedit_path = "C:\\path\\to\\MarcEdit\\cmarcedit.exe"  # Ensure this is the correct path to cmarcedit.exe
+
+# convert_marc_formats(contributorNamevalue, folder_path, marcedit_path)
+
+
+def notesPresenceChecker(driver)
+    return driver
+
+def customHarvestChecker(driver, workEffort, presenceOfNotes):
+
+    #will check for minimum presence of certain fields
+    #will check for fields that are not contained within a list
+    #will check each of the steps more specifically to see if they are generally compliant with expectations
+    #will check for the presence of certain notes
+    #will check if was initially custom
+    return driver

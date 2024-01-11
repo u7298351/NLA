@@ -14,9 +14,8 @@ class MainWindow(tk.Tk):
         scraper_header = tk.Label(self, text="Scraper Tools", font=("Arial", 12, "bold"))
 
         # Create buttons
-        html_harvester = tk.Button(self, text="HTML Harvester", command=self.activate_html_harvester)
-        start_button = tk.Button(self, text="Start Scraping", command=self.start_scraping)
         self.select_file_button = tk.Button(self, text="Select CSV File", command=self.select_csv_file)
+        start_button = tk.Button(self, text="Start Scraping", command=self.start_scraping)
 
         # Create entry field
         self.iteration_entry = tk.Entry(self)
@@ -28,11 +27,10 @@ class MainWindow(tk.Tk):
 
         # Organize items
         scraper_header.grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        html_harvester.grid(row=1, column=0, sticky="w", padx=10, pady=5)
         iteration_label.grid(row=2, column=0, sticky="w", padx=10)
         self.iteration_entry.grid(row=2, column=1, sticky="w")
-        start_button.grid(row=3, column=0, sticky="w", padx=10, pady=5)
-        self.select_file_button.grid(row=4, column=0, sticky="w", padx=10, pady=5)
+        start_button.grid(row=4, column=0, sticky="w", padx=10, pady=5)
+        self.select_file_button.grid(row=3, column=0, sticky="w", padx=10, pady=5)
 
         # Label to show selected file path
         self.selected_file_label = tk.Label(self, text="")
@@ -41,9 +39,6 @@ class MainWindow(tk.Tk):
         # Variable to store selected file path
         self.selected_file_path = ""
 
-    def activate_html_harvester(self):
-        # Placeholder for HTML Harvester activation code
-        pass
 
     def select_csv_file(self):
         file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])

@@ -9,7 +9,7 @@ import re
 import os
 import subprocess
 from time import sleep
-
+import shutil
 
 # Example usage
 #need to add function inputs
@@ -362,11 +362,31 @@ def logsDownloadOldSheetForComparison(driver, contributorNamevalue):
     sleep(3)
     downloadAll2 = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
     downloadAll2Box = driver.find_element('css selector', downloadAll2)
-    downloadAll2Box.click()
+    downloadAll2Box.altclick()
     print("downloaded logs")
     sleep(0.5)
-
+    move_most_recent_download(r"C:\Users\lknoke\Downloads", r"C:\Users\lknoke\Downloads\HarvesterANBDtoANBS\ANBS" + clean_contributor_name(contributorNamevalue))
+    
     return driver
+
+def move_most_recent_download(source_directory, destination_directory):
+    # Get the list of files in the downloads directory
+    files = os.listdir(source_directory)
+    # Create full paths to the files
+    full_paths = [os.path.join(source_directory, file) for file in files]
+    
+    # Filter out directories, only keep files
+    files_only = [file for file in full_paths if os.path.isfile(file)]
+    
+    # Find the most recent file
+    most_recent_file = max(files_only, key=os.path.getctime)
+    
+    # Construct the destination path
+    destination_file_path = os.path.join(destination_directory, os.path.basename(most_recent_file))
+    
+    # Move the most recent file to the destination directory
+    shutil.move(most_recent_file, destination_file_path)
+    print(f"Moved {most_recent_file} to {destination_directory}")
 
 
 def create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):

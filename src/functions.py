@@ -98,25 +98,28 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback):
             update_gui_callback("got to contributor csv processing")
             
             # Set up the download folder for each contributor
+            create_download_folder("ANBD", contributorNamevalue)
+            print("created folder")
             download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + clean_contributor_name(contributorNamevalue))
+            print("got to download folder for chrome start prepreference setting")
             driver = start_chrome_with_download_path(download_folder)
             update_gui_callback("Chrome started with download path set.")
-            sleep(5)
+            sleep(2)
             # Rest of the processing logic
             driver = collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue)
             print("collectedInputDetails")
 
-            sleep(5)
+            sleep(2)
             driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
 
-            sleep(5)
+            sleep(2)
 
             driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
-            sleep(5)
+            sleep(2)
             update_gui_callback(f"Row {i+1} processed successfully.")
-            sleep(5)
+            sleep(2)
             # Close the driver after processing each row
             update_gui_callback("driveris about to close")
             
@@ -138,10 +141,14 @@ def start_chrome():
     return driver
 
 def start_chrome_with_download_path(download_path):
+    print("got to chrome start function")
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-extensions")
-    prefs = {"download.default_directory": download_path}
+    prefs = {"download.default_directory": download_path,
+    "download.prompt_for_download": False,
+    "download.directory_upgrade": True,
+            }
     chrome_options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome(options=chrome_options)
     sleep(5)
@@ -352,8 +359,7 @@ def logsDownloadOldSheetForComparison(driver, contributorNamevalue):
     openMostRecentHarvestbox.click()
     sleep(0.5)
     print("got to specific harvest")
-    create_download_folder("ANBD", contributorNamevalue)
-    print("created folder")
+    sleep(3)
     downloadAll2 = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
     downloadAll2Box = driver.find_element('css selector', downloadAll2)
     downloadAll2Box.click()
@@ -612,27 +618,32 @@ def clickProcessingStepButton(driver, platformVariable):
 
 
 def runTestHarvest(driver):
-    performTestHarvest = "#subnav > li:nth-child(5) > a"
+    
+    
+    performTestHarvest = "#subnav > li:nth-child(6) > a"
     performTestHarvestbox = driver.find_element('css selector', performTestHarvest)
     performTestHarvestbox.click()
     sleep(0.5)
     
-    
-    fiftyRecords = "#manual > dd:nth-child(6) > dl > dd:nth-child(5) > input:nth-child(6)"
+    print("got to test")
+    fiftyRecords = "#manual > dd:nth-child(6) > dl > dd:nth-child(3) > input:nth-child(3)"
     fiftyRecordsbox = driver.find_element('css selector', fiftyRecords)
     fiftyRecordsbox.click()
     sleep(0.5)
+
+    print("selected from earliest")
     #the below may break it as it does not exist on first harvest.
-    fromTheEarliest = "#manual > dd:nth-child(6) > dl > dd:nth-child(3) > input:nth-child(3)"
+    fromTheEarliest = "#manual > dd:nth-child(6) > dl > dd:nth-child(5) > input:nth-child(6)"
     fromTheEarliestbox = driver.find_element('css selector', fromTheEarliest)
     fromTheEarliestbox.click()
     sleep(0.5)
 
+    print("selected after 50")
     harvest = "#mainsubmit"
     harvestbox = driver.find_element('css selector', harvest)
     harvestbox.click()
     sleep(0.5)
-
+    print("test harvest set to run")
     return driver
 
 
@@ -657,7 +668,7 @@ def downloadLogs(driver, contributorNamevalue):
 
 def create_download_folder(db, contributorNamevalue):
     folder_name = db + contributorNamevalue
-    folder_path = os.path.join(r"C:\Users\lachlan\Downloads\HarvesterANBDtoANBS", folder_name)  # Specify the parent directory
+    folder_path = os.path.join(r"C:\Users\lknoke\Downloads\HarvesterANBDtoANBS", folder_name)  # Specify the parent directory
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     return folder_path

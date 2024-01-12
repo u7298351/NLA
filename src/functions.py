@@ -10,7 +10,7 @@ import os
 import subprocess
 from time import sleep
 import shutil
-
+from selenium.common.exceptions import NoSuchElementException
 # Example usage
 #need to add function inputs
 #need to check logic for - platform sirsi
@@ -112,7 +112,7 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback):
             sleep(2)
             driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
-
+            write_to_csv(contributorNamevalue, workEffortvalue)
             sleep(2)
 
             driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
@@ -244,7 +244,7 @@ def contributorVariables(driver, contributorNamevalue):
     workEffortvalue = selected_option.get_attribute("value")
     print("Selected work effort value:", workEffortvalue)
     print(workEffortvalue)
-# need to confirm all of the selectors are right - mightve screwed it
+    # need to confirm all of the selectors are right - mightve screwed it
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
 
@@ -568,18 +568,39 @@ def inputDataStoreSettings(driver, contributorNUCvalue):
 
     return driver
 
+def initialize_csv(csv_filename='output.csv'):
+    # Open the file in write mode to create or clear the file
+    with open(csv_filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write a header
+        writer.writerow(['Contributor Name'])
+
+def write_to_csv(contributorNamevalue, workEffortvalue, csv_filename='output.csv'):
+    # Check if workEffortvalue is 'custom'
+    if workEffortvalue == 'custom':
+        # Open the file in append mode
+        with open(csv_filename, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([contributorNamevalue])
+
+        
 
 
 
     #MAY NEED TO BE REALLY CAREFUL HERE AS NUMBER OF PROCESSING STEPS WILL CHANGE DEPENDING ON PROCESSING PROFILE
 
 
-def editProcessingSteps(driver, platformVariable, NUCVariable):
-    goToProcessing = "#subnav > li:nth-child(7)"            #this looked different - might not work
+def editProcessingSteps(driver, platformVariable, contributorNUCvalue):
+    goToProcessing = "#subnav > li:nth-child(7)"          
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
     goToProcessingBox.click()
-    
+    #content > ul:nth-child(6) > li:nth-child(1) > a
     print("got to processing")
+    
+    editTestProcessingSteps = "#content > ul:nth-child(6) > li:nth-child(1) > a"
+    editTestProcessingStepsBox = driver.find_element('css selector', editTestProcessingSteps)
+    editTestProcessingStepsBox.click()
+
     # edit test steps - I have not changed this yet - need to look at it later - def wrong
     driver = clickProcessingStepButton(driver, platformVariable)
     sleep(0.5)
@@ -593,7 +614,7 @@ def editProcessingSteps(driver, platformVariable, NUCVariable):
     
     insertNUCText = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr:nth-child(2) > td:nth-child(2) > div > table > tbody > tr.clone > td:nth-child(2) > input"
     insertNUCTextbox = driver.find_element('css selector', insertNUCText)
-    insertNUCTextbox.click()
+    insertNUCTextbox.send_keys(contributorNUCvalue)
     sleep(0.5)
     print("added NUC")
    
@@ -617,6 +638,7 @@ def editProcessingSteps(driver, platformVariable, NUCVariable):
     return driver
 
 def checkIfCustom(driver):
+    
     return driver
 
 def enactCustomStyleSheetNotes(driver):
@@ -665,7 +687,6 @@ def runTestHarvest(driver):
     sleep(0.5)
     print("test harvest set to run")
     return driver
-
 
 def downloadLogs(driver, contributorNamevalue):
     logs = "#subnav > li.on > a"
@@ -784,22 +805,81 @@ def convert_marc_formats(contributor_name, folder_path, marcedit_path):
 
 
 def notesPresenceChecker(driver):
+
     return driver
 
 def minimumPresenceChecker(driver):
     return driver, minimumPresence
-def unusualCheckers(driver):
-    return driver, unusualSteps
+
+def compare_elements_with_standards(driver):
+    # Initialize and manually assign values
+    standards_array = ["Strip Namespaces", 
+                       "Strip invalid '#' character from Leader and Control Fields", 
+                       "CHANGE - Filter partner collections - only keep MARC_DATAFIELD is VALUE", 
+                       "Test for minimum record standard",
+                       "keep only records that meet minimum standard",
+                       "HOLDINGS - Alma - Create 850 holding statement",
+                       "HOLDINGS - Aurora/Symphony - Create 850 from 984 or add HELD",
+                       "HOLDINGS - Koha - Create 850 holdings statement",
+                       "HOLDINGS - Libero - Create 850 from 852",
+                       "HOLDINGS - Liberty - Create 850 from 852",
+                       "HOLDINGS - Spydus - Create 850 from 852",
+                       "HOLDINGS - Add 850 HELD",
+                       "Add missing 338 to incoming record",
+                       "MARC bibliographic transformation - libraries that Catalogue",
+                       "Generate SOLR query - libraries that actively catalogue",
+                       "Ensure SOLR query string is not blank",
+                       "Send search query string to LA Search (SOLR - prod)",
+                       "Parse SOLR output",
+                       "Add best matching AN parsed XML",
+                       "Discard records that had a 001 added",
+                       "Update NUC",
+                       "Delete duplicate 850",
+                       "Add MarcXML namespaces"
+                       ]  # Manually assigned standard texts
+    base_xpath = '//*[@id="ProcessingStepsForm"]/table/tbody'  # Manually assigned base XPath
+    column_number = 6  # Manually assigned column number containing the descriptions
+    
+    non_matching_elements = []
+    workEffort = "Standard"
+    row_number = 2  # Starting from the first row you want to check
+
+    while True:
+        xpath = f"{base_xpath}/tr[{row_number}]/td[{column_number}]"
+        try:
+            element = driver.find_element(By.XPATH, xpath)
+            element_text = element.text.strip()
+            
+            if element_text not in standards_array:
+                non_matching_elements.append(element_text)
+                workEffort = "Custom"
+            
+            row_number += 1  # Move to the next row
+        except NoSuchElementException:
+            # No more rows found, break the loop
+            break
+    return non_matching_elements, workEffort, driver
 
 def customHarvestChecker(driver, workEffort, presenceOfNotes):
-    driver, unusualSteps = unusualChecker(driver)
+    goToProcessing = "#subnav > li:nth-child(7)"          
+    goToProcessingBox = driver.find_element('css selector', goToProcessing)     
+    goToProcessingBox.click()
+    #content > ul:nth-child(6) > li:nth-child(1) > a
+    print("got to processing")
+    
+    editProdProcessingSteps = "#content > ul:nth-child(3) > li:nth-child(1) > a"
+    editProdProcessingStepsBox = driver.find_element('css selector', editProdProcessingSteps)
+    editProdProcessingStepsBox.click()
+    print("got to test steps to check if custom")
+
+    unusualSteps, workEffortvalue, driver = compare_elements_with_standards(driver)
     driver, minimumPresence = minimumPresenceChecker(driver)
     driver, presenceOfNotes = notesPresenceChecker(driver)
-    if workEffort == "custom"|workEffort == "Not selected"|presenceOfNotes == "True"|minimumPresence== "False"|unusualSteps=="True":
-        workEffort = "custom"
+    if workEffort == "Custom"|workEffort == "Not Selected"|presenceOfNotes == "True"|minimumPresence== "False"|unusualSteps=="True":
+        workEffort = "Custom"
     #will check for minimum presence of certain fields
     #will check for fields that are not contained within a list
     #will check each of the steps more specifically to see if they are generally compliant with expectations
     #will check for the presence of certain notes
     #will check if was initially custom
-    return driver
+        return driver, workEffortvalue, unusualSteps

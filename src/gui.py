@@ -4,6 +4,12 @@ from tkinter import filedialog, messagebox
 from functions import scraper_main 
 
 class MainWindow(tk.Tk):
+    # Add this inside the MainWindow class in your existing GUI code
+
+    def open_login_window(self):
+        self.login_window = LoginWindow(self)
+        self.login_window.grab_set()  # Make the login window modal
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("NLA Automation Tools")

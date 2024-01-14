@@ -11,22 +11,20 @@ import subprocess
 from time import sleep
 import shutil
 from selenium.common.exceptions import NoSuchElementException
-# Example usage
-#need to add function inputs
+
 #need to check logic for - platform sirsi
 #need to check logic for - variable storing
 #need to check logic for - description insertion - may not matter
 #need to check logic for - notes - we can add it as we see it
 #need to check logic for finding the correct test processing step
-#building on prior one - need code to handle specific libero logic for each harvesting profile
+#building on prior one - need check specific libero logic for each harvesting profile 0 including extracting it if libero
 
 #need seperate code for running put in active contributor section
 #Idea - could add logic to check for unique XSLT sheets from the standards - and spit those out into another csv list to be consulted with later - would be helpful with universities
 #need code to check if it is custom setup
 
-
-#need marcedit file conversion
-#need gui for general harvester creation
+#need check marcedit file conversion
+#need finish gui for general harvester creation
 #need code to deal with contributor type dropdown - variable and insert.
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -37,8 +35,10 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
     sleep(5)
 
     username = driver.find_element(By.CSS_SELECTOR, "#username")
+    username.send_keys("XXX")
     sleep(0.5)
     password = driver.find_element(By.CSS_SELECTOR, "#password")
+    password.send_keys("XXX")
     sleep(0.5)
     login = driver.find_element(By.CSS_SELECTOR, "#kc-login")
     login.click()
@@ -65,15 +65,7 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
 # Example callback function
 def print_message(message):
     print(message)
-def start_chrome_with_download_path(download_path):
-    chrome_options = Options()
-    chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("--disable-extensions")
-    prefs = {"download.default_directory": download_path}
-    chrome_options.add_experimental_option("prefs", prefs)
-    driver = webdriver.Chrome(options=chrome_options)
-    sleep(5)
-    return driver
+
 def clean_contributor_name(name):
     # Remove square brackets and colons from the name
     cleaned_name = re.sub(r'[\[\]:]', '', name)
@@ -110,12 +102,12 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback):
             print("collectedInputDetails")
 
             sleep(2)
-            driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            driver, liberoSets, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
             write_to_csv(contributorNamevalue, workEffortvalue)
             sleep(2)
 
-            driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            driver = create_new_contributor(driver, liberoSets, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
             sleep(2)
             update_gui_callback(f"Row {i+1} processed successfully.")
@@ -128,7 +120,22 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback):
     
     update_gui_callback("Scraping completed.")
 
+def extract_contributor_NUC(contributorNamevalue):
+    try:
+        # Regular expression to find all characters up to the first space
+        match = re.search(r'(\S+)', contributorNamevalue)
+        if match:
+            # Extract the value up to the first space
+            contributorNUCvalue = match.group(1)
+            return contributorNUCvalue
+        else:
+            # Handle cases where no match is found
+            raise ValueError("No NUC value found in the contributor name.")
 
+    except Exception as error:
+        # Handle any unexpected errors
+        print(f"Error occurred: {error}")
+        return None
 
 def start_chrome():
     chrome_options = Options()
@@ -174,21 +181,23 @@ def process_csv_data(driver, max_iterations, contributorNamevalue):
     return driver
 
 
-
-
-
-
 def copyContributorVariables(driver, contributorNamevalue):
     # Ensure all functions are called in the correct order
     # Extract variables from the contributor page
     driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue = contributorVariables(driver, contributorNamevalue)
     print("copied contributor setup details")
     # Process contributor details
+
     driver, contributors = contributorDetailsVariables(driver)
     print("copied contributor details")
+
     driver, urlTakervalue, setTakervalue = connectionSettingsVariables(driver)
     print("copied contributor connection settings")
 
+    if platformValue == "libero|Libero":
+        driver, liberoFieldName, liberoRequiredvalue = liberoSetExtractor(driver)
+    else :
+        liberoSets = None
     # Run test harvest
     driver = runTestHarvest(driver)
     print("ran test harvest")
@@ -197,10 +206,74 @@ def copyContributorVariables(driver, contributorNamevalue):
     driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
     print("downloaded logs")
 
-    return driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
+    return driver,  liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
+
+#To do write liberosetextractor
+def liberoSetExtractor(driver):
+    print("is a libero platform - extracting sets")
+    #go to processing steps
+    goToProcessing = "#subnav > li:nth-child(7)"
+    goToProcessingBox = driver.find_element('css selector', goToProcessing)
+    goToProcessingBox.click()
+    sleep(0.5)
+    print("got to processing for libero")
+    editTestProcessingSteps = "#content > ul:nth-child(6) > li:nth-child(1) > a"
+    editTestProcessingStepsBox = driver.find_element('css selector', editTestProcessingSteps)
+    editTestProcessingStepsBox.click()
+    sleep(0.5)
+    print("got to processing steps for libero")
+    #click on processing steps button
+    # Click the element
+    click_element_selector = "#ProcessingStepsForm > table > tbody > tr:nth-child(4) > td:nth-child(8) > ul > li:nth-child(1) > a"
+    driver.find_element(By.CSS_SELECTOR, click_element_selector).click()
+
+    # Extract the value from the first input field and save as 'liberoFieldName'
+    field_name_selector = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr.clone > td:nth-child(1) > input"
+    liberoFieldName = driver.find_element(By.CSS_SELECTOR, field_name_selector).get_attribute("value")
+
+    # Extract the value from the second input field and save as 'liberoRequiredValue'
+    required_value_selector = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr.clone > td:nth-child(2) > input"
+    liberoRequiredValue = driver.find_element(By.CSS_SELECTOR, required_value_selector).get_attribute("value")
+    return driver, liberoFieldName, liberoRequiredValue
+
+def liberoStepInsert(driver, liberoFieldName, liberoRequiredValue):
+    print("is a libero platform - inserting sets exclusions")
+    #go to processing steps
+    goToProcessing = "#subnav > li:nth-child(6)"
+    goToProcessingBox = driver.find_element('css selector', goToProcessing)
+    goToProcessingBox.click()
+    sleep(0.5)
+    print("got to processing for libero")
+    editTestProcessingSteps = "#content > ul:nth-child(6) > li:nth-child(1) > a"
+    editTestProcessingStepsBox = driver.find_element('css selector', editTestProcessingSteps)
+    editTestProcessingStepsBox.click()
+    sleep(0.5)
+    print("got to edit test processing steps for libero")
+    #click on processing steps button
+    # Click the element
+    click_element_selector = "#ProcessingStepsForm > table > tbody > tr:nth-child(4) > td:nth-child(8) > ul > li:nth-child(1) > a"
+    driver.find_element(By.CSS_SELECTOR, click_element_selector).click()
+
+    # Extract the value from the first input field and save as 'liberoFieldName'
+    field_name_selector = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr.clone > td:nth-child(1) > input"
+    driver.find_element(By.CSS_SELECTOR, field_name_selector).send_keys(liberoFieldName)
+
+    # Extract the value from the second input field and save as 'liberoRequiredValue'
+    required_value_selector = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr.clone > td:nth-child(2) > input"
+    driver.find_element(By.CSS_SELECTOR, required_value_selector).send_keys(liberoRequiredValue)
+
+    main_submit_selector = "#mainsubmit"
+    driver.find_element(By.CSS_SELECTOR, main_submit_selector).click()
+
+    # Click the element using its specific CSS path
+    processing_step_selector = "#ProcessingStepsForm > ul:nth-child(5) > li:nth-child(2) > input"
+    driver.find_element(By.CSS_SELECTOR, processing_step_selector).click()
+
+    return driver
 
 
 def contributorVariables(driver, contributorNamevalue):
+
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
     editContributorvalue = editContributor.click()
     sleep(0.5)
@@ -260,7 +333,8 @@ def extract_contributor_NUC(contributorNamevalue):
         contributorNUCvalue = match.group(1)
     else:
         # Handle cases where no match is found
-        contributorNUCvalue = ""
+        print("I could not figure out what your NUC value was")
+        
 
     return contributorNUCvalue
 
@@ -389,7 +463,7 @@ def move_most_recent_download(source_directory, destination_directory):
     print(f"Moved {most_recent_file} to {destination_directory}")
 
 
-def create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):
+def create_new_contributor(driver, liberoSets, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):
 
     # need to break out the data variable array for the individual variable names to call and insert them where relevant for the following functions
 
@@ -403,7 +477,7 @@ def create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, de
     print("connection details done")
     driver = inputDataStoreSettings(driver, contributorNUCvalue)
     print("data store done")
-    driver = editProcessingSteps(driver, contributorNUCvalue)
+    driver = editProcessingSteps(driver, liberoSets, contributorNUCvalue)
     print("processing steps eddited")
     driver = runTestHarvest(driver)
     print("test harvest run")
@@ -549,24 +623,7 @@ def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
 
 
 
-def inputDataStoreSettings(driver, contributorNUCvalue):
-    gotoDataStore = "#subnav > li:nth-child(4) > a"
-    gotoDataStoreBox = driver.find_element(By.CSS_SELECTOR, gotoDataStore)
-    gotoDataStoreBox.click()
 
-    editDataStore = "#content > ul > li > a"
-    editDataStoreBox = driver.find_element(By.CSS_SELECTOR, editDataStore)
-    editDataStoreBox.click()
-
-    editNuc = "#settingsform > fieldset > dl > dd:nth-child(2) > input"
-    editNucBox = driver.find_element(By.CSS_SELECTOR, editNuc)
-    editNucBox.send_keys(contributorNUCvalue)
-
-    saveDataStore = "#settingsform > ul > li:nth-child(2) > a"
-    saveDataStoreBox = driver.find_element(By.CSS_SELECTOR, saveDataStore)
-    saveDataStoreBox.click()
-
-    return driver
 
 def initialize_csv(csv_filename='output.csv'):
     # Open the file in write mode to create or clear the file
@@ -590,7 +647,7 @@ def write_to_csv(contributorNamevalue, workEffortvalue, csv_filename='output.csv
     #MAY NEED TO BE REALLY CAREFUL HERE AS NUMBER OF PROCESSING STEPS WILL CHANGE DEPENDING ON PROCESSING PROFILE
 
 
-def editProcessingSteps(driver, platformVariable, contributorNUCvalue):
+def editProcessingSteps(driver, platformVariable, liberoSets, contributorNUCvalue):
     goToProcessing = "#subnav > li:nth-child(7)"          
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
     goToProcessingBox.click()
@@ -600,6 +657,11 @@ def editProcessingSteps(driver, platformVariable, contributorNUCvalue):
     editTestProcessingSteps = "#content > ul:nth-child(6) > li:nth-child(1) > a"
     editTestProcessingStepsBox = driver.find_element('css selector', editTestProcessingSteps)
     editTestProcessingStepsBox.click()
+
+
+    if platformVariable.lower() == "libero":
+        print("got to libero")
+        editLiberoProcessingSteps(driver, liberoSets, contributorNUCvalue)
 
     # edit test steps - I have not changed this yet - need to look at it later - def wrong
     driver = clickProcessingStepButton(driver, platformVariable)
@@ -637,12 +699,6 @@ def editProcessingSteps(driver, platformVariable, contributorNUCvalue):
 
     return driver
 
-def checkIfCustom(driver):
-    
-    return driver
-
-def enactCustomStyleSheetNotes(driver):
-    return driver
 
 def clickProcessingStepButton(driver, platformVariable):
     # Determine the correct row index based on platformVariable
@@ -777,9 +833,6 @@ def convert_marc_to_mrk(source_file, destination_file):
 
 
 
-import subprocess
-import os
-
 def convert_marc_formats(contributor_name, folder_path, marcedit_path):
     # Construct the file paths
     source_marcxml_file = os.path.join(folder_path, f"{contributor_name}_source_file.xml")
@@ -803,14 +856,69 @@ def convert_marc_formats(contributor_name, folder_path, marcedit_path):
 
 # convert_marc_formats(contributorNamevalue, folder_path, marcedit_path)
 
-
+#to check
 def notesPresenceChecker(driver):
+    print("checking for presence of notes to determine if it is custom")
+    presenceOfNotes = "No"
 
-    return driver
+    # CSS selector for the element  
+    element_selector = "#content > table > tbody > tr:nth-child(2) > td:nth-child(4) > ul > li > a"
 
+    try:
+        # Try to find the element
+        driver.find_element(By.CSS_SELECTOR, element_selector)
+        # If found, set presenceOfNotes to "Yes"
+        presenceOfNotes = "Yes"
+    except NoSuchElementException:
+        # If the element is not found, NoSuchElementException is raised
+        presenceOfNotes = "No"
+    print("notes presence checked for")
+    return driver, presenceOfNotes
+
+#todo to check
 def minimumPresenceChecker(driver):
+    print("Checking for presence of minimum fields to determine if it is custom")
+
+    # List of texts to search for in the specified column
+    required_texts = [
+        "Strip Namespaces",
+        "Strip invalid '#' character from Leader and Control Fields",
+        "Test for minimum record standard",
+        "Keep only records that meet minimum record standard",
+        "A MINIMUM of ONE HOLDINGS XSLT",
+        "Add missing 338s",
+        "Update NUC",
+        "Split ISBN from other data",
+        "MARC",
+        "Generate SOLR query",
+        "Ensure SOLR query string is not blank",
+        "Evaluate results returned",
+        "001",
+        "Delete Duplicate 850",
+        "Add MarcXML namespaces"
+    ]
+
+    # Selector for the rows in the specific column
+    row_selector = "#content > table:nth-child(4) > tbody > tr"
+
+    # Set minimumPresence to True initially
+    minimumPresence = True
+
+    try:
+        # Fetch all rows in the specified column
+        rows = driver.find_elements(By.CSS_SELECTOR, row_selector)
+        for required_text in required_texts:
+            if not any(required_text in row.find_element(By.CSS_SELECTOR, "td:nth-child(5)").text for row in rows):
+                minimumPresence = False
+                break
+    except NoSuchElementException:
+        # If rows are not found, set minimumPresence to False
+        minimumPresence = False
+
+    print(f"Minimum Presence: {minimumPresence}")
     return driver, minimumPresence
 
+#to do todo
 def compare_elements_with_standards(driver):
     # Initialize and manually assign values
     standards_array = ["Strip Namespaces", 
@@ -860,6 +968,58 @@ def compare_elements_with_standards(driver):
             break
     return non_matching_elements, workEffort, driver
 
+def customXSLT_step(driver, unusualSteps):
+    # Standard array
+    standard_array = [
+        "strip-namespace_utf8.xsl",
+        "parseANBD_SOLR.xsl",
+        "Marc_Bibliographic_Transformation_Libraries_that_catalogue_1_9.xsl",
+        "Generate_LA_search_string_libraries_that_catalogue v6-1.xsl",
+        "Add_best_matching_AN-Pass_All_Fields_parsedXML v5.xsl",
+        "Generic_Marc_Bibliographic_Transformation_8.xsl",
+        "Generic_Marc_Holdings_Transformation_5.xsl",
+        "Generic_Marc_Bibliographic_Transformation_8.xsl",
+        "create_850_Koha.xsl",
+        "create_850_held_only.xsl",
+        "create_850_from_984.xsl",
+        "Create_850_from_852_spydus.xsl",
+        "create_850_from_852_Liberty.xsl",
+        "create_850_from_852_Libero(1).xsl",
+        "Construct a search string for LA SOLR_7.xsl",
+        "bibliographic_minimum_record_test.xsl",
+        "ALMA_create_850-1.6.xsl",
+        "Add_best_matching_AN-seperate results-v3.xsl",
+        "Add_338_new_records_1_2.xsl",
+        "Add MARC namespaces.xsl",
+        "Add_best_matching_AN-Pass_All_Fields_parsedXML v5.xsl",
+        "Add_best_matching_AN-seperate results-v3.xsl",
+        "Construct a search string for LA SOLR_7.xsl"
+    ]
+
+    customXSLT = "False"
+    base_xpath = '//*[@id="processingstepform"]/dl/dd[8]/h4[2]/preceding-sibling::table[1]/tbody/tr'
+    row_number = 1
+
+    while True:
+        try:
+            # XPath to find the specific td content
+            content_xpath = f"{base_xpath}[{row_number}]/td[3]"
+            content_element = driver.find_element(By.XPATH, content_xpath)
+            content_text = content_element.text
+
+            print(f"Row {row_number} Content: {content_text}")
+
+            if content_text not in standard_array:
+                customXSLT = "True"
+                unusualSteps.append(content_text)
+
+            row_number += 1
+
+        except NoSuchElementException:
+            break
+
+    return driver, customXSLT, unusualSteps
+
 def customHarvestChecker(driver, workEffort, presenceOfNotes):
     goToProcessing = "#subnav > li:nth-child(7)"          
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
@@ -875,8 +1035,10 @@ def customHarvestChecker(driver, workEffort, presenceOfNotes):
     unusualSteps, workEffortvalue, driver = compare_elements_with_standards(driver)
     driver, minimumPresence = minimumPresenceChecker(driver)
     driver, presenceOfNotes = notesPresenceChecker(driver)
-    if workEffort == "Custom"|workEffort == "Not Selected"|presenceOfNotes == "True"|minimumPresence== "False"|unusualSteps=="True":
+    driver, customXSLT, unusualSteps = customXSLT_step(driver, unusualSteps)
+    if workEffort == "Custom"|workEffort == "Not Selected"|customXSLT == "True"|presenceOfNotes == "True"|minimumPresence== "False"|unusualSteps=="True":
         workEffort = "Custom"
+
     #will check for minimum presence of certain fields
     #will check for fields that are not contained within a list
     #will check each of the steps more specifically to see if they are generally compliant with expectations

@@ -29,21 +29,21 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from time import sleep
-def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
+def collect_Input_GUI_And_CSVDetails(driver, username, password, contributorNamevalue):
+    print("1")
     url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
     driver.get(url)
     sleep(5)
-
-    username = driver.find_element(By.CSS_SELECTOR, "#username")
-    username.send_keys("XXX")
+    print("2")
+    driver.find_element(By.CSS_SELECTOR, "#username").send_keys(username)
+    print("3")
     sleep(0.5)
-    password = driver.find_element(By.CSS_SELECTOR, "#password")
-    password.send_keys("XXX")
+    driver.find_element(By.CSS_SELECTOR, "#password").send_keys(password)
+    print("4")
     sleep(0.5)
-    login = driver.find_element(By.CSS_SELECTOR, "#kc-login")
-    login.click()
+    driver.find_element(By.CSS_SELECTOR, "#kc-login").click()
     sleep(1)
-
+    print("5")
     anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
     anbd_box = driver.find_element(By.CSS_SELECTOR, anbd_path)
     anbd_box.click()
@@ -51,6 +51,7 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
     print(contributorNamevalue)
     contributorNamevalue = re.sub(r'^.*?\[', '', contributorNamevalue)
     print(contributorNamevalue)
+
     try:
         link_xpath = f"//a[contains(text(), '{contributorNamevalue}')]"
         print(contributorNamevalue)
@@ -59,7 +60,8 @@ def collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue):
         sleep(0.5)  # Wait for page to load after click
     except Exception as e:
         print(f"Error finding link for {contributorNamevalue}: {e}")
-    print("found contributor")
+
+    print("Found contributor")
     return driver
 
 # Example callback function
@@ -71,54 +73,49 @@ def clean_contributor_name(name):
     cleaned_name = re.sub(r'[\[\]:]', '', name)
     return cleaned_name
 # Test the function with the callback
-def scraper_main(max_iterations, csv_file_path, update_gui_callback):
-    print("got to scraper_main")
+def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, password):
+    print("Got to scraper_main")
+    
+    base_download_folder = "C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS"
+    print("6")
+    # Initialize the WebDriver
+    print("7")
     with open(csv_file_path, 'r') as file:
+        print("8.5")
         csv_reader = csv.reader(file)
-        update_gui_callback("read file csv")
-         # Skip the header row if there is one
-
+        
+        print("9.5")
         for i, row in enumerate(csv_reader):
             if i >= max_iterations:
                 break
-
-            # Assuming the contributorNamevalue is in a specific column, e.g., first column
-            contributorNamevalue = row[0]  # Adjust the index as per your CSV structure
-            update_gui_callback("got to contributor extraction")
-
+            print("11")
+            contributorNamevalue = row[0]  # Assuming the contributorNamevalue is in the first column
             update_gui_callback(f"Processing row {i+1}: {contributorNamevalue}")
-            update_gui_callback("got to contributor csv processing")
-            
+            print("10")
             # Set up the download folder for each contributor
-            create_download_folder("ANBD", contributorNamevalue)
-            print("created folder")
-            download_folder = os.path.join("C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS", "ANBS" + clean_contributor_name(contributorNamevalue))
-            print("got to download folder for chrome start prepreference setting")
+            download_folder = create_download_folder(base_download_folder, contributorNamevalue)
+            print(f"Created folder for {contributorNamevalue}")
+            print("8")
+            # Start Chrome with the download path set
             driver = start_chrome_with_download_path(download_folder)
             update_gui_callback("Chrome started with download path set.")
-            sleep(2)
-            # Rest of the processing logic
-            driver = collect_Input_GUI_And_CSVDetails(driver, contributorNamevalue)
-            print("collectedInputDetails")
+            print("9")
+            # Collect input details
+            driver = collect_Input_GUI_And_CSVDetails(driver, username, password, contributorNamevalue)
+            print("Collected input details")
 
-            sleep(2)
-            driver, liberoSets, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
-            print("collectedcontributorvariables")
-            write_to_csv(contributorNamevalue, workEffortvalue)
-            sleep(2)
+            # Additional processing logic based on your application's requirements
+            # ...
 
-            driver = create_new_contributor(driver, liberoSets, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
-            print("createdNewContributor")
-            sleep(2)
             update_gui_callback(f"Row {i+1} processed successfully.")
-            sleep(2)
-            # Close the driver after processing each row
-            update_gui_callback("driveris about to close")
-            
-            driver.close()
+            sleep(2)  # Adjust sleep as needed
+
+        # Close the driver after processing each row
+        update_gui_callback("Scraping completed.")
+        driver.close()
 
     
-    update_gui_callback("Scraping completed.")
+    update_gui_callback("Scraping completed completed.")
 
 def extract_contributor_NUC(contributorNamevalue):
     try:

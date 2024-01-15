@@ -69,7 +69,7 @@ class LoginWindow(tk.Toplevel):
         super().__init__(parent)
         self.title("Login")
         self.geometry("300x200")
-
+        print("got to init")
         # Username and password entries
         self.username = tk.StringVar()
         self.password = tk.StringVar()
@@ -91,7 +91,7 @@ class LoginWindow(tk.Toplevel):
         username = self.username.get()
         password = self.password.get()
         self.destroy()  # Close the login window
-
+        print("got to attempt login")
         # Call scraper_main with the necessary arguments
         max_iterations = int(self.master.iteration_entry.get())
         csv_file_path = self.master.selected_file_path
@@ -101,5 +101,7 @@ class LoginWindow(tk.Toplevel):
 
 
 if __name__ == "__main__":
+    print("got to name main")
     app = MainWindow()
     app.mainloop()
+    

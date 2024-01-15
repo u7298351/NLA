@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 import tkinter as tk
 import csv
 import re
@@ -29,11 +30,31 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from time import sleep
+def remove_square_brackets(name):
+    # Remove only the square brackets, keep the content inside
+    return re.sub(r'[\[\]]', '', name)
+def clean_formatting(name):
+    # Convert to bytes and then decode to ignore non-UTF characters
+    name = name.encode('utf-8', 'ignore').decode('utf-8', 'ignore')
+
+    # Remove specific unwanted characters
+    characters_to_remove = ['ï', '»', '¿']
+    for char in characters_to_remove:
+        name = name.replace(char, '')
+
+    # Replace invalid file path characters with a single space
+    cleaned_name = re.sub(r'[:/\\|*?"<>]', ' ', name)
+
+    # Additional cleaning to ensure no consecutive spaces
+    cleaned_name = ' '.join(cleaned_name.split())
+
+    return cleaned_name
 def collect_Input_GUI_And_CSVDetails(driver, username, password, contributorNamevalue):
     print("1")
     url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
     driver.get(url)
     sleep(5)
+    
     print("2")
     driver.find_element(By.CSS_SELECTOR, "#username").send_keys(username)
     print("3")
@@ -44,39 +65,55 @@ def collect_Input_GUI_And_CSVDetails(driver, username, password, contributorName
     driver.find_element(By.CSS_SELECTOR, "#kc-login").click()
     sleep(1)
     print("5")
+    print("inputting anbd finder")
     anbd_path = "#content > table > tbody > tr:nth-child(5) > td:nth-child(1) > a"
     anbd_box = driver.find_element(By.CSS_SELECTOR, anbd_path)
     anbd_box.click()
     sleep(0.5)
+    print("went to anbd collection")
     print(contributorNamevalue)
-    contributorNamevalue = re.sub(r'^.*?\[', '', contributorNamevalue)
-    print(contributorNamevalue)
-
+    contributorNamevalue = clean_contributor_name1(remove_square_brackets(contributorNamevalue))
+    contributorNuc = get_letters_before_space(contributorNamevalue)
+    print("got to i dont know where")
     try:
-        link_xpath = f"//a[contains(text(), '{contributorNamevalue}')]"
-        print(contributorNamevalue)
+        link_xpath = f"//a[contains(text(), '{contributorNuc}')]"
+        print("found "+ contributorNuc)
         link = driver.find_element(By.XPATH, link_xpath)
         link.click()
         sleep(0.5)  # Wait for page to load after click
     except Exception as e:
-        print(f"Error finding link for {contributorNamevalue}: {e}")
+        print(f"Error finding link for {contributorNuc}: {e}")
 
     print("Found contributor")
     return driver
-
+def get_letters_before_space(text):
+    match = re.search(r'^\S+', text)
+    if match:
+        return match.group()
+    else:
+        return None
 # Example callback function
 def print_message(message):
     print(message)
 
-def clean_contributor_name(name):
-    # Remove square brackets and colons from the name
-    cleaned_name = re.sub(r'[\[\]:]', '', name)
+def clean_contributor_name1(name):
+    # Convert to bytes and then decode to ignore non-UTF characters
+    name = name.encode('utf-8', 'ignore').decode('utf-8', 'ignore')
+    # Replace invalid file path characters with a single space
+    cleaned_name = re.sub(r'[\[\]:/\\|*?"<>]', ' ', name)
+    # Additional cleaning to ensure no consecutive spaces
+    cleaned_name = ' '.join(cleaned_name.split())
+
+    # Remove specific unwanted characters
+    characters_to_remove = ['ï', '»', '¿']
+    for char in characters_to_remove:
+        cleaned_name = cleaned_name.replace(char, '')
+
     return cleaned_name
 # Test the function with the callback
 def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, password):
     print("Got to scraper_main")
-    
-    base_download_folder = "C:\\Users\\lachlan\\Downloads\\HarvesterANBDtoANBS"
+    base_download_folder = r"C:\Users\lknoke\Downloads\NLA\HarvesterANBDtoANBS"
     print("6")
     # Initialize the WebDriver
     print("7")
@@ -90,6 +127,9 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, p
                 break
             print("11")
             contributorNamevalue = row[0]  # Assuming the contributorNamevalue is in the first column
+            print(contributorNamevalue)
+            print(remove_square_brackets(clean_formatting(contributorNamevalue)))
+            contributorNamevalue = remove_square_brackets(clean_formatting(contributorNamevalue))
             update_gui_callback(f"Processing row {i+1}: {contributorNamevalue}")
             print("10")
             # Set up the download folder for each contributor
@@ -104,8 +144,11 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, p
             driver = collect_Input_GUI_And_CSVDetails(driver, username, password, contributorNamevalue)
             print("Collected input details")
 
-            # Additional processing logic based on your application's requirements
-            # ...
+            print("collectedInputDetails")
+            driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            print("collectedcontributorvariables")
+            driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            print("createdNewContributor")
 
             update_gui_callback(f"Row {i+1} processed successfully.")
             sleep(2)  # Adjust sleep as needed
@@ -138,6 +181,8 @@ def start_chrome():
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument('--safebrowsing-disable-download-protection')
+    chrome_options.add_argument('--safebrowsing-disable-extension-blacklist')
     # chrome_options.add_argument("--headless") # Enable this option when code
     # is working fine to run in headless mode (without opening browser)
 
@@ -181,6 +226,8 @@ def process_csv_data(driver, max_iterations, contributorNamevalue):
 def copyContributorVariables(driver, contributorNamevalue):
     # Ensure all functions are called in the correct order
     # Extract variables from the contributor page
+    "going to contributorVariables function now"
+
     driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue = contributorVariables(driver, contributorNamevalue)
     print("copied contributor setup details")
     # Process contributor details
@@ -201,7 +248,7 @@ def copyContributorVariables(driver, contributorNamevalue):
 
     # Download logs and old sheet for comparison
     driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
-    print("downloaded logs")
+    print("downloaded logs of original harvest")
 
     return driver,  liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
 
@@ -270,16 +317,16 @@ def liberoStepInsert(driver, liberoFieldName, liberoRequiredValue):
 
 
 def contributorVariables(driver, contributorNamevalue):
-
+    
     editContributor = driver.find_element(By.CSS_SELECTOR, "#content > ul > li:nth-child(1) > a")
     editContributorvalue = editContributor.click()
     sleep(0.5)
     print("got passed edit")
 
-    
     contributorNUC = extract_contributor_NUC(contributorNamevalue)
     print("got passed NUC extraction")
     print(contributorNUC)
+
     description = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(4) > input[type=text]")
     descriptionvalue = description.get_attribute("value")
     print("got passed description")
@@ -296,7 +343,9 @@ def contributorVariables(driver, contributorNamevalue):
     if platformValueLower in ("symphony", "sirsidynix", "aurora", "Symphony", "Sirsidynix", "SirsiDynix", "Aurora"):
         platformValue = "SirsiDynix"
     print("got passed platform logic")
+    print("checking to see if this prints")
     print(platformValue)
+    print("platform value should have printed")
     orgID = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > input[type=text]")
     orgIDvalue = orgID.get_attribute("value")
     print("got passed orgID")
@@ -331,7 +380,6 @@ def extract_contributor_NUC(contributorNamevalue):
     else:
         # Handle cases where no match is found
         print("I could not figure out what your NUC value was")
-        
 
     return contributorNUCvalue
 
@@ -375,7 +423,7 @@ def connectionSettingsVariables(driver):
     viewConnectionSettings = driver.find_element(By.CSS_SELECTOR, "#subnav > li:nth-child(3) > a")
     viewConnectionSettingsBox = viewConnectionSettings.click()
     sleep(0.5)
-    print("got to connection settings")
+    print("got to connection settings ul > li > a")
     editConnectionSettingsAgain = driver.find_element(By.CSS_SELECTOR, "#content > ul > li > a")
     editConnectionSettingsAgainBox = editConnectionSettingsAgain.click()
     sleep(0.5)
@@ -432,11 +480,14 @@ def logsDownloadOldSheetForComparison(driver, contributorNamevalue):
     print("got to specific harvest")
     sleep(3)
     downloadAll2 = "#content > dl:nth-child(3) > dd:nth-child(9) > ul > li:nth-child(3) > a"
-    downloadAll2Box = driver.find_element('css selector', downloadAll2)
-    downloadAll2Box.altclick()
+    downloadAll2Box = driver.find_element('css selector', downloadAll2)  # Find the element using the CSS selector
+    actions = ActionChains(driver)
+    actions.key_down(Keys.ALT).click(downloadAll2Box).key_up(Keys.ALT).perform()  # Perform Alt+Click on the element
     print("downloaded logs")
     sleep(0.5)
-    move_most_recent_download(r"C:\Users\lknoke\Downloads", r"C:\Users\lknoke\Downloads\HarvesterANBDtoANBS\ANBS" + clean_contributor_name(contributorNamevalue))
+    base_path = r"C:\Users\lknoke\Downloads\NLA\HarvesterANBDtoANBS"
+    destination_path = os.path.join(base_path, contributorNamevalue)
+    move_most_recent_download(r"C:\Users\lknoke\Downloads", destination_path)
     
     return driver
 
@@ -463,7 +514,9 @@ def move_most_recent_download(source_directory, destination_directory):
 def create_new_contributor(driver, liberoSets, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):
 
     # need to break out the data variable array for the individual variable names to call and insert them where relevant for the following functions
-
+    url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
+    driver.get(url)
+    print("going home page")
     driver = createNewContributorBegin(driver)
     print("created new contributor")
     driver = inputContributorDetails(driver, contributorNamevalue, orgIDvalue, workEffortvalue, platformValue, descriptionvalue)
@@ -481,11 +534,31 @@ def create_new_contributor(driver, liberoSets, contributorNamevalue, contributor
     driver = downloadLogs(driver, contributorNamevalue)
     print("logs downloaded")
     print("forgot to add in the correct folder and marcpath in the following function")
-    # convert_marc_formats(contributorNamevalue, folderPath, marcPath) #these should be hardcoded for me
+    # convert_marc_formats(contributorNamevalue, folderPath, marcPath) #these should be hardcoded for me #to do todo
     return driver
 
+def inputDataStoreSettings(driver, contributorNUCvalue):
+    
+    gotoDataStore = "#subnav > li:nth-child(4) > a"
+    gotoDataStoreBox = driver.find_element(By.CSS_SELECTOR, gotoDataStore)
+    gotoDataStoreBox.click()
+    print("this ul li a is datastore")
+    editDataStore = "#content > ul > li > a"
+    editDataStoreBox = driver.find_element(By.CSS_SELECTOR, editDataStore)
+    editDataStoreBox.click()
+
+    editNuc = "#settingsform > fieldset > dl > dd:nth-child(2) > input"
+    editNucBox = driver.find_element(By.CSS_SELECTOR, editNuc)
+    editNucBox.send_keys(contributorNUCvalue)
+
+    saveDataStore = "#settingsform > ul > li:nth-child(2) > a"
+    saveDataStoreBox = driver.find_element(By.CSS_SELECTOR, saveDataStore)
+    saveDataStoreBox.click()
+
+    return driver
 
 def createNewContributorBegin(driver):
+    print("selecting ANBS Path")
 
     anbs_path = "#content > table > tbody > tr:nth-child(14) > td:nth-child(1) > a"
     anbs_box = driver.find_element('css selector', anbs_path)
@@ -761,8 +834,8 @@ def downloadLogs(driver, contributorNamevalue):
 
 
 def create_download_folder(db, contributorNamevalue):
-    folder_name = db + contributorNamevalue
-    folder_path = os.path.join(r"C:\Users\lknoke\Downloads\HarvesterANBDtoANBS", folder_name)  # Specify the parent directory
+    
+    folder_path = os.path.join(r"C:\Users\lknoke\Downloads\NLA\HarvesterANBDtoANBS", contributorNamevalue)  # Specify the parent directory
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     return folder_path

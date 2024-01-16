@@ -27,6 +27,8 @@ from selenium.common.exceptions import NoSuchElementException
 #need check marcedit file conversion
 #need finish gui for general harvester creation
 #need code to deal with contributor type dropdown - variable and insert.
+#TODO to do add code to go back to connection settings, switch contributor notifications on for anbd and anbs <-- need to figure out if I want to do this or not
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from time import sleep
@@ -216,9 +218,9 @@ def process_csv_data(driver, max_iterations, contributorNamevalue):
             data = row[0]
             driver = collect_Input_GUI_And_CSVDetails(driver, data)
             print("collectedInputDetails")
-            driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
-            driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            driver = create_new_contributor(driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
     return driver
 
@@ -228,7 +230,7 @@ def copyContributorVariables(driver, contributorNamevalue):
     # Extract variables from the contributor page
     "going to contributorVariables function now"
 
-    driver, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue = contributorVariables(driver, contributorNamevalue)
+    driver, ticked_checkboxes, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue = contributorVariables(driver, contributorNamevalue)
     print("copied contributor setup details")
     # Process contributor details
 
@@ -238,10 +240,10 @@ def copyContributorVariables(driver, contributorNamevalue):
     driver, urlTakervalue, setTakervalue = connectionSettingsVariables(driver)
     print("copied contributor connection settings")
 
-    if platformValue == "libero|Libero":
+    if platformValue.lower() == "libero":
         driver, liberoFieldName, liberoRequiredvalue = liberoSetExtractor(driver)
     else :
-        liberoSets = None
+        liberoFieldName = None
     # Run test harvest
     driver = runTestHarvest(driver)
     print("ran test harvest")
@@ -250,8 +252,33 @@ def copyContributorVariables(driver, contributorNamevalue):
     driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
     print("downloaded logs of original harvest")
 
-    return driver,  liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
+    return driver,  ticked_checkboxes, liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
 
+def check_and_untick_checkboxes(driver):
+    ticked_checkboxes = []
+    row = 4  # Starting from row 4 as per your example
+
+    while True:
+        for col in range(5, 8):  # Columns 5 to 7
+            try:
+                checkbox_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({row}) > td:nth-child({col}) > input[type=checkbox]"
+                checkbox = driver.find_element_by_css_selector(checkbox_selector)
+
+                if checkbox.is_selected():
+                    ticked_checkboxes.append((row, col))
+                    checkbox.click()  # Unticking the checkbox
+
+            except NoSuchElementException:
+                return ticked_checkboxes  # Return when no more rows are found
+
+        row += 1
+
+def retick_checkboxes(driver, ticked_checkboxes):
+    for row, col in ticked_checkboxes:
+        checkbox_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({row}) > td:nth-child({col}) > input[type=checkbox]"
+        checkbox = driver.find_element_by_css_selector(checkbox_selector)
+        if not checkbox.is_selected():
+            checkbox.click()
 #To do write liberosetextractor
 def liberoSetExtractor(driver):
     print("is a libero platform - extracting sets")
@@ -340,8 +367,10 @@ def contributorVariables(driver, contributorNamevalue):
     platformValueLower = platformValue.lower()
 
 # Check if the lowercase platformValue is one of the specified strings
-    if platformValueLower in ("symphony", "sirsidynix", "aurora", "Symphony", "Sirsidynix", "SirsiDynix", "Aurora"):
+    if platformValueLower in ("symphony", "sirsidynix"):
         platformValue = "SirsiDynix"
+    if platformValueLower in ("alma", esploro)
+        platformValue = "Alma"
     print("got passed platform logic")
     print("checking to see if this prints")
     print(platformValue)
@@ -350,6 +379,8 @@ def contributorVariables(driver, contributorNamevalue):
     orgIDvalue = orgID.get_attribute("value")
     print("got passed orgID")
     print(orgIDvalue)
+    print("about to turnoff and copy notification settings")
+    ticked_checkboxes = check_and_untick_checkboxes(driver)
 
     
     # Locate the <select> element

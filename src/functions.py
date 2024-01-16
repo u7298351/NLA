@@ -147,9 +147,9 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, p
             print("Collected input details")
 
             print("collectedInputDetails")
-            driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
-            driver = create_new_contributor(driver, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            driver = create_new_contributor(driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
 
             update_gui_callback(f"Row {i+1} processed successfully.")
@@ -218,9 +218,9 @@ def process_csv_data(driver, max_iterations, contributorNamevalue):
             data = row[0]
             driver = collect_Input_GUI_And_CSVDetails(driver, data)
             print("collectedInputDetails")
-            driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
-            driver = create_new_contributor(driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            driver = create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
     return driver
 
@@ -251,8 +251,9 @@ def copyContributorVariables(driver, contributorNamevalue):
     # Download logs and old sheet for comparison
     driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
     print("downloaded logs of original harvest")
-
-    return driver,  ticked_checkboxes, liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
+    print("going to turn on notifications again")
+    driver = retick_checkboxes(driver, ticked_checkboxes)
+    return driver, ticked_checkboxes, liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
 
 def check_and_untick_checkboxes(driver):
     ticked_checkboxes = []
@@ -398,7 +399,7 @@ def contributorVariables(driver, contributorNamevalue):
     #  = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]")
     # contributorNamevalue = contributorName.get_attribute("value")
 
-    return driver, contributorNUC, descriptionvalue, platformValue, orgIDvalue, workEffortvalue
+    return driver, ticked_checkboxes, contributorNUC, descriptionvalue, platformValue, orgIDvalue, workEffortvalue
 
 
 
@@ -542,7 +543,7 @@ def move_most_recent_download(source_directory, destination_directory):
     print(f"Moved {most_recent_file} to {destination_directory}")
 
 
-def create_new_contributor(driver, liberoSets, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):
+def create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors):
 
     # need to break out the data variable array for the individual variable names to call and insert them where relevant for the following functions
     url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
@@ -558,7 +559,7 @@ def create_new_contributor(driver, liberoSets, contributorNamevalue, contributor
     print("connection details done")
     driver = inputDataStoreSettings(driver, contributorNUCvalue)
     print("data store done")
-    driver = editProcessingSteps(driver, liberoSets, contributorNUCvalue)
+    driver = editProcessingSteps(driver, liberoFieldName, liberoRequiredValue, contributorNUCvalue)
     print("processing steps eddited")
     driver = runTestHarvest(driver)
     print("test harvest run")
@@ -566,6 +567,9 @@ def create_new_contributor(driver, liberoSets, contributorNamevalue, contributor
     print("logs downloaded")
     print("forgot to add in the correct folder and marcpath in the following function")
     # convert_marc_formats(contributorNamevalue, folderPath, marcPath) #these should be hardcoded for me #to do todo
+
+    print("inserting contributor notifications")
+    driver = retick_checkboxes(driver, ticked_checkboxes)
     return driver
 
 def inputDataStoreSettings(driver, contributorNUCvalue):
@@ -748,7 +752,7 @@ def write_to_csv(contributorNamevalue, workEffortvalue, csv_filename='output.csv
     #MAY NEED TO BE REALLY CAREFUL HERE AS NUMBER OF PROCESSING STEPS WILL CHANGE DEPENDING ON PROCESSING PROFILE
 
 
-def editProcessingSteps(driver, platformVariable, liberoSets, contributorNUCvalue):
+def editProcessingSteps(driver, platformVariable, liberoFieldName, liberoRequiredValue, contributorNUCvalue):
     goToProcessing = "#subnav > li:nth-child(7)"          
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
     goToProcessingBox.click()
@@ -762,7 +766,7 @@ def editProcessingSteps(driver, platformVariable, liberoSets, contributorNUCvalu
 
     if platformVariable.lower() == "libero":
         print("got to libero")
-        editLiberoProcessingSteps(driver, liberoSets, contributorNUCvalue)
+        liberoStepInsert(driver, liberoFieldName, liberoRequiredValue)
 
     # edit test steps - I have not changed this yet - need to look at it later - def wrong
     driver = clickProcessingStepButton(driver, platformVariable)

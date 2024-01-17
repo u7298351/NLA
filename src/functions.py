@@ -4,6 +4,8 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 import tkinter as tk
 import csv
 import re
@@ -147,9 +149,9 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, p
             print("Collected input details")
 
             print("collectedInputDetails")
-            driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
+            driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
-            driver = create_new_contributor(driver, ticked_checkboxes, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            driver = create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue,  contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
 
             update_gui_callback(f"Row {i+1} processed successfully.")
@@ -220,7 +222,7 @@ def process_csv_data(driver, max_iterations, contributorNamevalue):
             print("collectedInputDetails")
             driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors = copyContributorVariables(driver, contributorNamevalue)
             print("collectedcontributorvariables")
-            driver = create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
+            driver = create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoRequiredValue, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors)
             print("createdNewContributor")
     return driver
 
@@ -244,16 +246,37 @@ def copyContributorVariables(driver, contributorNamevalue):
         driver, liberoFieldName, liberoRequiredvalue = liberoSetExtractor(driver)
     else :
         liberoFieldName = None
+        liberoRequiredvalue = None
     # Run test harvest
     driver = runTestHarvest(driver)
     print("ran test harvest")
 
     # Download logs and old sheet for comparison
-    driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
+    # to do todo, sort out download box later
+    # driver = logsDownloadOldSheetForComparison(driver, contributorNamevalue)
     print("downloaded logs of original harvest")
     print("going to turn on notifications again")
+    first_button_selector = "#subnav > li:nth-child(1) > a"
+    first_button = driver.find_element(By.CSS_SELECTOR, first_button_selector)
+    first_button.click()
+    sleep(1)  # wait for 1 second
+
+    # Second button press
+    second_button_selector = "#content > ul > li:nth-child(1) > a"
+    second_button = driver.find_element(By.CSS_SELECTOR, second_button_selector)
+    second_button.click()
+    sleep(1)  # wait for 1 second
+
+
     driver = retick_checkboxes(driver, ticked_checkboxes)
-    return driver, ticked_checkboxes, liberoFieldName, liberoRequiredvalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
+    print("boxes reticked")
+    # Third button press
+    third_button_selector = "#mainsubmit"
+    third_button = driver.find_element(By.CSS_SELECTOR, third_button_selector)
+    third_button.click()
+    sleep(1)  # wait for 1 second
+    print("changes saved")
+    return driver, ticked_checkboxes, liberoFieldName, liberoRequiredvalue, contributorNamevalue, contributorNUCvalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue, urlTakervalue, setTakervalue, contributors
 
 def check_and_untick_checkboxes(driver):
     ticked_checkboxes = []
@@ -263,7 +286,7 @@ def check_and_untick_checkboxes(driver):
         for col in range(5, 8):  # Columns 5 to 7
             try:
                 checkbox_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({row}) > td:nth-child({col}) > input[type=checkbox]"
-                checkbox = driver.find_element_by_css_selector(checkbox_selector)
+                checkbox = driver.find_element('css selector', checkbox_selector)
 
                 if checkbox.is_selected():
                     ticked_checkboxes.append((row, col))
@@ -275,11 +298,14 @@ def check_and_untick_checkboxes(driver):
         row += 1
 
 def retick_checkboxes(driver, ticked_checkboxes):
+    print ("got to retick_checkboxes function")
     for row, col in ticked_checkboxes:
         checkbox_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({row}) > td:nth-child({col}) > input[type=checkbox]"
-        checkbox = driver.find_element_by_css_selector(checkbox_selector)
+        checkbox = driver.find_element('css selector', checkbox_selector)
         if not checkbox.is_selected():
             checkbox.click()
+    print("going to return driver")
+    return driver
 #To do write liberosetextractor
 def liberoSetExtractor(driver):
     print("is a libero platform - extracting sets")
@@ -370,7 +396,7 @@ def contributorVariables(driver, contributorNamevalue):
 # Check if the lowercase platformValue is one of the specified strings
     if platformValueLower in ("symphony", "sirsidynix"):
         platformValue = "SirsiDynix"
-    if platformValueLower in ("alma", esploro)
+    if platformValueLower in ("alma", "esploro"):
         platformValue = "Alma"
     print("got passed platform logic")
     print("checking to see if this prints")
@@ -551,11 +577,11 @@ def create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoReq
     print("going home page")
     driver = createNewContributorBegin(driver)
     print("created new contributor")
-    driver = inputContributorDetails(driver, contributorNamevalue, orgIDvalue, workEffortvalue, platformValue, descriptionvalue)
+    driver = inputContributorDetails(driver, contributorNamevalue, descriptionvalue, platformValue, orgIDvalue, workEffortvalue)
     print("inputted new contributor details")
     driver = addContributorContactDetails(driver, contributors)
     print("added contact details")
-    driver = inputConnectionDetails(driver, urlTakervalue, setTakervalue)
+    driver = inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue)
     print("connection details done")
     driver = inputDataStoreSettings(driver, contributorNUCvalue)
     print("data store done")
@@ -563,12 +589,23 @@ def create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoReq
     print("processing steps eddited")
     driver = runTestHarvest(driver)
     print("test harvest run")
-    driver = downloadLogs(driver, contributorNamevalue)
+    # to do todo sort out these download log function
+    # driver = downloadLogs(driver, contributorNamevalue)
     print("logs downloaded")
     print("forgot to add in the correct folder and marcpath in the following function")
     # convert_marc_formats(contributorNamevalue, folderPath, marcPath) #these should be hardcoded for me #to do todo
 
     print("inserting contributor notifications")
+    first_button_selector = "#subnav > li:nth-child(1) > a"
+    first_button = driver.find_element(By.CSS_SELECTOR, first_button_selector)
+    first_button.click()
+    sleep(1)  # wait for 1 second
+
+    # Second button press
+    second_button_selector = "#content > ul > li:nth-child(1) > a"
+    second_button = driver.find_element(By.CSS_SELECTOR, second_button_selector)
+    second_button.click()
+    sleep(1)  # wait for 1 second
     driver = retick_checkboxes(driver, ticked_checkboxes)
     return driver
 
@@ -612,19 +649,23 @@ def inputContributorDetails(driver, contributorNamevalue, descriptionvalue, plat
     name_insert = "#contributorform > fieldset > dl > dd:nth-child(2) > input[type=text]"
     name_insertBox = driver.find_element(By.CSS_SELECTOR, name_insert)
     name_insertBox.click()  # Focus on the name insert box
-
+    
     # Now send the keys in sequence, using TAB to navigate between fields
+    button1 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(4) > input[type=text]')
+    button2 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(8) > input[type=text]')
+    button3 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]')
+    button4 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(12) > select')
     name_insertBox.send_keys(contributorNamevalue)
-    name_insertBox.send_keys(Keys.TAB)
-    name_insertBox.send_keys(descriptionvalue)
-    name_insertBox.send_keys(Keys.TAB)
-    name_insertBox.send_keys(platformValue)
-    name_insertBox.send_keys(Keys.TAB)
-    name_insertBox.send_keys(orgIDvalue)
-    name_insertBox.send_keys(Keys.TAB)
+    print("added name")
+    button1.send_keys(descriptionvalue)
+    print("added description")
+    button2.send_keys(platformValue)
+    print("added platform")
+    button3.send_keys(orgIDvalue)
     print("added orgid")
+    print(workEffortvalue)
     # Locate the <select> element for workEffort
-    workEffort_dropdown = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(14) > select")
+    workEffort_dropdown = driver.find_element(By.CSS_SELECTOR, "#contributorform > fieldset > dl > dd:nth-child(12) > select")
 
 # Create a Select object for the workEffort dropdown
     select_workEffort = Select(workEffort_dropdown)
@@ -640,26 +681,47 @@ def inputContributorDetails(driver, contributorNamevalue, descriptionvalue, plat
 
 
 def addContributorContactDetails(driver, contributors):
-    for i, contributor in enumerate(contributors, start=4):
-        # Construct the selector for each field based on the index
-        name_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(1) > input"
-        job_title_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(2) > input"
-        email_selector = f"#contributorform > fieldset > table > tbody > tr:nth-child({i}) > td:nth-child(3) > input"
-        print("forgot to add type of contributor")
+    print("got to add contact details")
+    for i, contributor in enumerate(contributors):  # Start from the 5th row as per your example
+        add_contributor_button = f"#contributorform > fieldset > ul > li > a"
+        # The first contributor uses a special 'clone' class in the row
+        if i == 0:
+            row_selector = 'tr.clone'
+        else:
+            # Subsequent contributors are indexed starting from the 5th child
+            row_selector = f'tr:nth-child({4 + i})'
+
+        name_selector = f"#contributorform > fieldset > table > tbody > {row_selector} > td:nth-child(1) > input"
+        job_title_selector = f"#contributorform > fieldset > table > tbody > {row_selector} > td:nth-child(2) > input[type=text]"
+        email_selector = f"#contributorform > fieldset > table > tbody > {row_selector} > td:nth-child(3) > input"
+        type_selector = f"#contributorform > fieldset > table > tbody > {row_selector} > td:nth-child(8) > select"
+        add_contributor_buttonBox = driver.find_element('css selector', add_contributor_button)
+        add_contributor_buttonBox.click()
+        print("clicked add contributor button")
         # Find and populate the name field
         name_field = driver.find_element(By.CSS_SELECTOR, name_selector)
         name_field.clear()
         name_field.send_keys(contributor['name'])
+        print(f"Name for contributor {i} set to {contributor['name']}")
 
         # Find and populate the job title field
         job_title_field = driver.find_element(By.CSS_SELECTOR, job_title_selector)
         job_title_field.clear()
         job_title_field.send_keys(contributor['job_title'])
+        print(f"Job title for contributor {i} set to {contributor['job_title']}")
 
         # Find and populate the email field
         email_field = driver.find_element(By.CSS_SELECTOR, email_selector)
         email_field.clear()
         email_field.send_keys(contributor['email'])
+        print(f"Email for contributor {i} set to {contributor['email']}")
+
+        # Find and select the type from the dropdown
+        print(f"Type for contributor {i} about to be set to {contributor['type']}")
+        type_dropdown = Select(driver.find_element(By.CSS_SELECTOR, type_selector))
+        type_value = "1 " if contributor['type'].lower() == 'technical' else "0"
+        type_dropdown.select_by_value(type_value.strip())
+        print(f"Type for contributor {i} set to {contributor['type']}")
 
         # Logic to handle T or B typing based on box
         # You need to add this logic based on your specific requirements
@@ -668,6 +730,7 @@ def addContributorContactDetails(driver, contributors):
         # This part of the code needs to be implemented according to the specific functionality of your webpage
 
     # Click the submit/connection button after adding all contributors
+    print("about to save and proceed to step 2")
     setConnectionPath = "#mainsubmit"
     setConnectionBox = driver.find_element(By.CSS_SELECTOR, setConnectionPath)
     setConnectionBox.click()
@@ -688,34 +751,33 @@ def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
     saveConnectionSettingsBox.click()
     sleep(0.5)
 
-    # Input SET and navigate to format selection
-    setInsert = "#settingsform > fieldset > dl > dd:nth-child(8) > input[type=text]"
-    setInsertBox = driver.find_element(By.CSS_SELECTOR, setInsert)
-    # Locate the <select> element
-    setTaker_dropdown = driver.find_element(By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(6) > select")
+        # Input SET and navigate to format selection
+    try:    
+        setInsertBox = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(8) > input[type=text]"))
+        )
+        setInsertBox.send_keys(setTakervalue)
+    except Exception as e:
+        # It's not a text input, so try as a select dropdown
+        setTaker_dropdown = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(8) > select"))
+        )
+        Select(setTaker_dropdown).select_by_value(setTakervalue)
 
-    # Create a Select object
-    select_element = Select(setTaker_dropdown)
+    # Processing profile selection
+    processing_profile_dropdown = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(19) > select"))
+    )
+    processing_select = Select(processing_profile_dropdown)
+    closest_value = closest_option(processing_select, int(platformValue))
+    processing_select.select_by_value(closest_value)
 
-    # Assuming setTakervalue holds the value of the option you want to select
-    # Select the option by its value
-    select_element.select_by_value(setTakervalue)
-
-    print(f"Option with value '{setTakervalue}' selected")
-    setInsertBox.send_keys(Keys.TAB)
-
-    # Clear the existing format value and input "marc21"
-    for _ in range(6):  # Assuming 6 backspaces are sufficient to clear the field
-        setInsertBox.send_keys(Keys.BACKSPACE)
-    setInsertBox.send_keys("marc21")
-
-    # Navigate to the next field and input the value "500"
-    setInsertBox.send_keys(Keys.TAB)
-    setInsertBox.send_keys("500")
-    setInsertBox.send_keys(Keys.TAB)
-
-    # Input Platform Value
-    setInsertBox.send_keys(platformValue)
+    # Set rate limit to 500
+    rate_limit_input = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(17) > input[type=text]"))
+    )
+    rate_limit_input.clear()
+    rate_limit_input.send_keys("500")
 
     # Submit the form
     saveContributor = "#mainsubmit"
@@ -739,7 +801,7 @@ def initialize_csv(csv_filename='output.csv'):
 
 def write_to_csv(contributorNamevalue, workEffortvalue, csv_filename='output.csv'):
     # Check if workEffortvalue is 'custom'
-    if workEffortvalue == 'custom':
+    if workEffortvalue == 'Custom':
         # Open the file in append mode
         with open(csv_filename, mode='a', newline='') as file:
             writer = csv.writer(file)
@@ -821,8 +883,7 @@ def clickProcessingStepButton(driver, platformVariable):
 
 
 def runTestHarvest(driver):
-    
-    
+   
     performTestHarvest = "#subnav > li:nth-child(6) > a"
     performTestHarvestbox = driver.find_element('css selector', performTestHarvest)
     performTestHarvestbox.click()
@@ -1022,7 +1083,11 @@ def minimumPresenceChecker(driver):
 
     print(f"Minimum Presence: {minimumPresence}")
     return driver, minimumPresence
-
+def closest_option(select_element, target_value):
+    # Find the option that is closest to the target value
+    options = select_element.options
+    closest_value = min(options, key=lambda option: abs(int(option.get_attribute('value')) - target_value))
+    return closest_value.get_attribute('value')
 #to do todo
 def compare_elements_with_standards(driver):
     # Initialize and manually assign values

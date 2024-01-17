@@ -655,8 +655,9 @@ def inputContributorDetails(driver, contributorNamevalue, descriptionvalue, plat
     button2 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(8) > input[type=text]')
     button3 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(10) > input[type=text]')
     button4 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(12) > select')
-    name_insertBox.send_keys(contributorNamevalue)
+    name_insertBox.send_keys(format_contributor_name(contributorNamevalue))
     print("added name")
+    print(contributorNamevalue)
     button1.send_keys(descriptionvalue)
     print("added description")
     button2.send_keys(platformValue)
@@ -1215,3 +1216,29 @@ def customHarvestChecker(driver, workEffort, presenceOfNotes):
     #will check for the presence of certain notes
     #will check if was initially custom
         return driver, workEffortvalue, unusualSteps
+
+
+def format_contributor_name(contributorNameValue):
+    # Pattern to match the first set of characters followed by a space or a colon
+    pattern = r'^(.*?)([\s:])'
+
+    # Search for the pattern in the input string
+    match = re.search(pattern, contributorNameValue)
+
+    if match:
+        first_part = match.group(1)  # The first set of characters
+        separator = match.group(2)  # The space or colon following the first set
+
+        # Reconstruct the string with the required formatting
+        formatted_string = f"[{first_part}]{separator}{contributorNameValue[len(first_part) + len(separator):]}"
+
+        # Remove space at the start if it exists and ensure a space after the right square bracket
+        formatted_string = formatted_string.lstrip().replace("][", "] [")
+
+        return formatted_string
+    else:
+        # If the pattern is not found, return the original string
+        print("Could not find a match for the square brackets to go round")
+        print(contributorNameValue)
+        return contributorNameValue
+    

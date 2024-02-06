@@ -57,7 +57,7 @@ def collect_Input_GUI_And_CSVDetails(driver, username, password, contributorName
     print("1")
     url = "https://ourweb.nla.gov.au/HarvesterClient/ListCollections.htm"
     driver.get(url)
-    sleep(5)
+    sleep(2)
     
     print("2")
     driver.find_element(By.CSS_SELECTOR, "#username").send_keys(username)
@@ -155,11 +155,12 @@ def scraper_main(max_iterations, csv_file_path, update_gui_callback, username, p
             print("createdNewContributor")
 
             update_gui_callback(f"Row {i+1} processed successfully.")
-            sleep(2)  # Adjust sleep as needed
+            sleep(1)  # Adjust sleep as needed
 
         # Close the driver after processing each row
         update_gui_callback("Scraping completed.")
-        driver.close()
+        #to do todo consider whether I want to close the driver, probably do after all looping in file is done for prod time
+        # driver.close()
 
     
     update_gui_callback("Scraping completed completed.")
@@ -204,7 +205,7 @@ def start_chrome_with_download_path(download_path):
             }
     chrome_options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome(options=chrome_options)
-    sleep(5)
+    sleep(1)
     return driver
 
 def process_csv_data(driver, max_iterations, contributorNamevalue):
@@ -585,9 +586,9 @@ def create_new_contributor(driver, ticked_checkboxes, liberoFieldName, liberoReq
     print("connection details done")
     driver = inputDataStoreSettings(driver, contributorNUCvalue)
     print("data store done")
-    driver = editProcessingSteps(driver, liberoFieldName, liberoRequiredValue, contributorNUCvalue)
+    driver = editProcessingSteps(driver, platformValue, liberoFieldName, liberoRequiredValue, contributorNUCvalue)
     print("processing steps eddited")
-    driver = runTestHarvest(driver)
+    driver = runTestHarvestForNewContributor(driver)
     print("test harvest run")
     # to do todo sort out these download log function
     # driver = downloadLogs(driver, contributorNamevalue)
@@ -657,7 +658,7 @@ def inputContributorDetails(driver, contributorNamevalue, descriptionvalue, plat
     button4 = driver.find_element(By.CSS_SELECTOR, '#contributorform > fieldset > dl > dd:nth-child(12) > select')
     name_insertBox.send_keys(format_contributor_name(contributorNamevalue))
     print("added name")
-    print(contributorNamevalue)
+    print(format_contributor_name(contributorNamevalue))
     button1.send_keys(descriptionvalue)
     print("added description")
     button2.send_keys(platformValue)
@@ -739,6 +740,16 @@ def addContributorContactDetails(driver, contributors):
 
     return driver
 
+def select_closest_processing_profile(driver, platformValue):
+    processing_profile_selector = "#settingsform > fieldset > dl > dd:nth-child(19) > select"
+    processing_profile_dropdown = driver.find_element(By.CSS_SELECTOR, processing_profile_selector)
+    processing_select = Select(processing_profile_dropdown)
+
+    # Find the option that contains the platformValue
+    for option in processing_select.options:
+        if platformValue in option.text:
+            processing_select.select_by_value(option.get_attribute("value"))
+            break
 
 def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
     # Input URL
@@ -751,7 +762,7 @@ def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
     saveConnectionSettingsBox = driver.find_element(By.CSS_SELECTOR, saveConnectionSettings)
     saveConnectionSettingsBox.click()
     sleep(0.5)
-
+    print("got to step 2")
         # Input SET and navigate to format selection
     try:    
         setInsertBox = WebDriverWait(driver, 10).until(
@@ -764,26 +775,35 @@ def inputConnectionDetails(driver, urlTakervalue, setTakervalue, platformValue):
             EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(8) > select"))
         )
         Select(setTaker_dropdown).select_by_value(setTakervalue)
-
+    
+    print("inputted set")
+    print("inputting metadata prefix")
+    
     # Processing profile selection
+    print("check profile selection button style")
     processing_profile_dropdown = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(19) > select"))
     )
-    processing_select = Select(processing_profile_dropdown)
-    closest_value = closest_option(processing_select, int(platformValue))
-    processing_select.select_by_value(closest_value)
+    print("selecting process")
+    try:
+        select_format_option(driver)
+        select_closest_processing_profile(driver, platformValue)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
+    print("inputting rate limit")
     # Set rate limit to 500
     rate_limit_input = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#settingsform > fieldset > dl > dd:nth-child(17) > input[type=text]"))
     )
     rate_limit_input.clear()
     rate_limit_input.send_keys("500")
-
+    print("rate limit inputted")
     # Submit the form
     saveContributor = "#mainsubmit"
     saveContributorBox = driver.find_element(By.CSS_SELECTOR, saveContributor)
     saveContributorBox.click()
+    print("saved contributor settinngs")
     sleep(0.5)
 
     return driver
@@ -816,7 +836,7 @@ def write_to_csv(contributorNamevalue, workEffortvalue, csv_filename='output.csv
 
 
 def editProcessingSteps(driver, platformVariable, liberoFieldName, liberoRequiredValue, contributorNUCvalue):
-    goToProcessing = "#subnav > li:nth-child(7)"          
+    goToProcessing = "#subnav > li:nth-child(6) > a"          
     goToProcessingBox = driver.find_element('css selector', goToProcessing)     
     goToProcessingBox.click()
     #content > ul:nth-child(6) > li:nth-child(1) > a
@@ -825,40 +845,39 @@ def editProcessingSteps(driver, platformVariable, liberoFieldName, liberoRequire
     editTestProcessingSteps = "#content > ul:nth-child(6) > li:nth-child(1) > a"
     editTestProcessingStepsBox = driver.find_element('css selector', editTestProcessingSteps)
     editTestProcessingStepsBox.click()
-
+    print("about to figure out if libero platform")
 
     if platformVariable.lower() == "libero":
         print("got to libero")
         liberoStepInsert(driver, liberoFieldName, liberoRequiredValue)
-
+    print("finished libero handling")
     # edit test steps - I have not changed this yet - need to look at it later - def wrong
+
     driver = clickProcessingStepButton(driver, platformVariable)
+    print("clicked processing step button for NUC")
     sleep(0.5)
     
     print("processing step opened")
     
-    editNucStep = "#ProcessingStepsForm > table > tbody > tr:nth-child(11) > td:nth-child(8) > ul > li:nth-child(1) > a"
-    editNucStepBox = driver.find_element('css selector', editNucStep)
-    editNucStepBox.click()
-    sleep(0.5)
     
-    insertNUCText = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr:nth-child(2) > td:nth-child(2) > div > table > tbody > tr.clone > td:nth-child(2) > input"
+    insertNUCText = "#processingstepform > dl > dd:nth-child(16) > table > tbody > tr:nth-child(2) > td:nth-child(2) > div > table > tbody > tr.clone > td:nth-child(3) > input"
     insertNUCTextbox = driver.find_element('css selector', insertNUCText)
+    insertNUCTextbox.clear()
     insertNUCTextbox.send_keys(contributorNUCvalue)
     sleep(0.5)
     print("added NUC")
-   
+    replaceCHANGEtext = contributorNUCvalue + " - Update NUC"
     replaceCHANGE = "#processingstepform > dl > dd:nth-child(12) > input[type=text]"
     replaceCHANGEbox = driver.find_element('css selector', replaceCHANGE)
-    replaceCHANGEbox.click()
+    replaceCHANGEbox.clear()
+    replaceCHANGEbox.send_keys(replaceCHANGEtext)
     sleep(0.5)
-    print("forgot to add NUC change replace code")
+    print("changed NUC Update descriptor")
     saveNuc = "#mainsubmit"
     saveNucbox = driver.find_element('css selector', saveNuc)
     saveNucbox.click()
     sleep(0.5)
-    
-    
+        
     saveSteps = "#ProcessingStepsForm > ul:nth-child(5) > li:nth-child(2) > input"
     saveStepsbox = driver.find_element('css selector', saveSteps)
     saveStepsbox.click()
@@ -870,7 +889,7 @@ def editProcessingSteps(driver, platformVariable, liberoFieldName, liberoRequire
 
 def clickProcessingStepButton(driver, platformVariable):
     # Determine the correct row index based on platformVariable
-    row_index = 9 if platformVariable.lower() == "libero" else 8
+    row_index = 11 if platformVariable.lower() == "libero" else 10
 
     # Construct the selector for the button
     button_selector = f"#ProcessingStepsForm > table > tbody > tr:nth-child({row_index}) > td:nth-child(8) > ul > li:nth-child(1) > a"
@@ -882,7 +901,32 @@ def clickProcessingStepButton(driver, platformVariable):
 
     return driver
 
+def runTestHarvestForNewContributor(driver):
+    performTestHarvest = "#subnav > li:nth-child(5) > a"
+    performTestHarvestbox = driver.find_element('css selector', performTestHarvest)
+    performTestHarvestbox.click()
+    sleep(0.5)
+    
+    print("got to test")
+    fiftyRecords = "#manual > dd:nth-child(6) > dl > dd:nth-child(3) > input:nth-child(3)"
+    fiftyRecordsbox = driver.find_element('css selector', fiftyRecords)
+    fiftyRecordsbox.click()
+    sleep(0.5)
 
+    print("selected from earliest")
+    #the below may break it as it does not exist on first harvest.
+    fromTheEarliest = "#manual > dd:nth-child(6) > dl > dd:nth-child(5) > input:nth-child(6)"
+    fromTheEarliestbox = driver.find_element('css selector', fromTheEarliest)
+    fromTheEarliestbox.click()
+    sleep(0.5)
+
+    print("selected after 50")
+    harvest = "#mainsubmit"
+    harvestbox = driver.find_element('css selector', harvest)
+    harvestbox.click()
+    sleep(0.5)
+    print("test harvest set to run")
+    return driver
 def runTestHarvest(driver):
    
     performTestHarvest = "#subnav > li:nth-child(6) > a"
@@ -1084,11 +1128,10 @@ def minimumPresenceChecker(driver):
 
     print(f"Minimum Presence: {minimumPresence}")
     return driver, minimumPresence
-def closest_option(select_element, target_value):
-    # Find the option that is closest to the target value
-    options = select_element.options
-    closest_value = min(options, key=lambda option: abs(int(option.get_attribute('value')) - target_value))
-    return closest_value.get_attribute('value')
+def select_format_option(driver):
+    format_dropdown_selector = "#settingsform > fieldset > dl > dd:nth-child(10) > select"
+    format_dropdown = driver.find_element(By.CSS_SELECTOR, format_dropdown_selector)
+    Select(format_dropdown).select_by_value("marcxml")
 #to do todo
 def compare_elements_with_standards(driver):
     # Initialize and manually assign values
